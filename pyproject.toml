@@ -28,7 +28,6 @@ build-backend = "uv_build"
 index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
-"xblick" = { git = "https://github.com/xblick/xblick.git", rev = "45908e67465647b39a6b185665bd91da175924ca" }
 "torch" = { index = "pytorch-cu130" }
 "torchvision" = { index = "pytorch-cu130" }
 

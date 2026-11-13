@@ -888,12 +888,16 @@ wheels = [
 [[package]]
 name = "xblick"
 version = "0.5.0"
-source = { git = "https://github.com/xblick/xblick.git?rev=45908e67465647b39a6b185665bd91da175924ca#45908e67465647b39a6b185665bd91da175924ca" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "eclipse-zenoh" },
     { name = "numpy" },
     { name = "pillow" },
     { name = "textual" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/17/2c/04eca9a70bafcb7737684d316be3775290efe0958f27b3d8dcc1301c2f5a/xblick-0.5.0.tar.gz", hash = "sha256:898818a075b1a74a852f62a350f359bf917aa7f399222a2e04fe50d48105adc0", size = 599758, upload-time = "2026-11-13T12:04:45.7Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/11/3389bad59d3213d9a34498fc07ecb93523ca410270a06679916b96990ab4/xblick-0.5.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:4fe2e57bc7e8ce10f83934358e21c3b5556a6ab2ecd9269dee158358e32919da", size = 391479, upload-time = "2026-11-13T12:04:42.588Z" },
 ]
 
 [[package]]
@@ -919,7 +923,7 @@ requires-dist = [
     { name = "numpy", specifier = ">=1.26" },
     { name = "torch", specifier = ">=2.10", index = "https://download.pytorch.org/whl/cu130" },
     { name = "transformers", specifier = ">=5,<6" },
-    { name = "xblick", git = "https://github.com/xblick/xblick.git?rev=45908e67465647b39a6b185665bd91da175924ca" },
+    { name = "xblick", specifier = ">=0.5.0,<0.6" },
 ]
 
 [package.metadata.requires-dev]
