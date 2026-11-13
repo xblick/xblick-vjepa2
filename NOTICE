@@ -1,0 +1,11 @@
+durchblick-vjepa2
+Copyright 2026 David Schneider
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Parts of others that the node uses. None of them is contained in this repository:
+
+- Model code: Hugging Face transformers (VJEPA2ForVideoClassification, VJEPA2VideoProcessor), Apache License 2.0.
+  It is a Python dependency.
+- Checkpoint facebook/vjepa2-vitl-fpc16-256-ssv2 (V-JEPA 2 ViT-L with a Something-Something v2 head) by Meta,
+  MIT License as its Hugging Face model card states. tools/setup.sh downloads it into weights/.

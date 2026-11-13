@@ -1,0 +1,28 @@
+# The tests that need neither a GPU nor model weights, and the check for internal references.
+# Tests that need a CUDA device or weights/ skip themselves here.
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  references:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: tools/check_references.sh
+
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.x"
+      - name: venv as uv.lock states (builds the Durchblick core from source)
+        run: uv sync --frozen
+      - name: tests without a GPU
+        run: .venv/bin/python -m pytest -q

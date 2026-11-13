@@ -1,0 +1,45 @@
+[project]
+name = "durchblick-vjepa2"
+version = "0.1.0"
+description = "V-JEPA 2 (Meta's self-supervised video encoder) as a Durchblick node: a clip's tokens and its actions"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+authors = [{ name = "David Schneider" }]
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "blick>=0.4,<0.5",  # the Durchblick core: node, history, tensors, parameters, vision_msgs/Classification
+    "transformers>=5,<6",  # VJEPA2ForVideoClassification (transformers 4.53+); 5: from_pretrained(dtype=)
+    "torch>=2.10",
+    "numpy>=1.26",
+]
+
+[project.scripts]
+durchblick-vjepa2 = "durchblick_vjepa2.node:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "torchvision"]  # torchvision: transformers' video processor, in the tests
+
+[build-system]
+requires = ["uv_build>=0.8,<0.12"]
+build-backend = "uv_build"
+
+[tool.uv]
+index-strategy = "unsafe-best-match"
+
+[tool.uv.sources]
+"blick" = { git = "https://github.com/xblick/durchblick", branch = "main" }
+"torch" = { index = "pytorch-cu130" }
+"torchvision" = { index = "pytorch-cu130" }
+
+[[tool.uv.index]]
+name = "pytorch-cu130"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
