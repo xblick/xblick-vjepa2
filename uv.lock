@@ -25,17 +25,6 @@ wheels = [
 ]
 
 [[package]]
-name = "blick"
-version = "0.4.0"
-source = { git = "https://github.com/xblick/durchblick?branch=main#d0f665007f684b707fb0b18b01c65d76348769c5" }
-dependencies = [
-    { name = "eclipse-zenoh" },
-    { name = "numpy" },
-    { name = "pillow" },
-    { name = "textual" },
-]
-
-[[package]]
 name = "click"
 version = "8.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -120,39 +109,6 @@ nvrtc = [
 ]
 nvtx = [
     { name = "nvidia-nvtx", marker = "platform_machine == 'aarch64' or platform_machine == 'x86_64'" },
-]
-
-[[package]]
-name = "durchblick-vjepa2"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "blick" },
-    { name = "numpy" },
-    { name = "torch" },
-    { name = "transformers" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "pytest" },
-    { name = "ruff" },
-    { name = "torchvision" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "blick", git = "https://github.com/xblick/durchblick?branch=main" },
-    { name = "numpy", specifier = ">=1.26" },
-    { name = "torch", specifier = ">=2.10", index = "https://download.pytorch.org/whl/cu130" },
-    { name = "transformers", specifier = ">=5,<6" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.6" },
-    { name = "torchvision", index = "https://download.pytorch.org/whl/cu130" },
 ]
 
 [[package]]
@@ -927,4 +883,48 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f6/cc/6253133b5bb138fc3306cebfbda2c520f545d36b5be2c7255cc528bb45d6/typing_extensions-4.16.0.tar.gz", hash = "sha256:dc983d19a509c94dba722ee6abd33940f7c05a89e243c47e907eb4db6f1a43e5", size = 113555, upload-time = "2026-07-02T08:40:05.92Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/49/d3/b8441a820a491ddfc024b0b0cf0393375b75ea13866d9c66727e54c2fc80/typing_extensions-4.16.0-py3-none-any.whl", hash = "sha256:481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8", size = 45571, upload-time = "2026-07-02T08:40:04.659Z" },
+]
+
+[[package]]
+name = "xblick"
+version = "0.5.0"
+source = { git = "https://github.com/xblick/xblick.git?rev=45908e67465647b39a6b185665bd91da175924ca#45908e67465647b39a6b185665bd91da175924ca" }
+dependencies = [
+    { name = "eclipse-zenoh" },
+    { name = "numpy" },
+    { name = "pillow" },
+    { name = "textual" },
+]
+
+[[package]]
+name = "xblick-vjepa2"
+version = "0.2.0"
+source = { editable = "." }
+dependencies = [
+    { name = "numpy" },
+    { name = "torch" },
+    { name = "transformers" },
+    { name = "xblick" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "ruff" },
+    { name = "torchvision" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "numpy", specifier = ">=1.26" },
+    { name = "torch", specifier = ">=2.10", index = "https://download.pytorch.org/whl/cu130" },
+    { name = "transformers", specifier = ">=5,<6" },
+    { name = "xblick", git = "https://github.com/xblick/xblick.git?rev=45908e67465647b39a6b185665bd91da175924ca" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8" },
+    { name = "ruff", specifier = ">=0.6" },
+    { name = "torchvision", index = "https://download.pytorch.org/whl/cu130" },
 ]

@@ -1,6 +1,6 @@
 # Speed
 
-This page reports the timings of the model and the live measurement of durchblick-vjepa2.
+This page reports the timings of the model and the live measurement of xblick-vjepa2.
 
 ## Setup
 

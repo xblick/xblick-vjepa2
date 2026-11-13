@@ -1,6 +1,6 @@
-# durchblick-vjepa2
+# xblick-vjepa2
 
-This [Durchblick](https://github.com/xblick/durchblick) node computes video features for the newest
+This [Durchblick](https://github.com/xblick/xblick) node computes video features for the newest
 clip of a camera's colour stream, and it names the actions that a classification head reads from them. The encoder
 needs 17 ms per clip of 16 frames, and the node produced a clip for every frame of a camera at 15 frames per second.
 
@@ -24,7 +24,7 @@ frame of the clip and the camera frame of that frame.
 | `<camera>/diagnostics` | `diagnostic_msgs/DiagnosticArray` | status `vjepa2` once per second: clips and frames per second, ms from the newest frame to the results, frames without a clip, restarts, clips skipped for `--max-hz` |
 
 The node publishes the tokens only while a subscriber exists. It does not publish actions with `--no-labels`.
-`blick rerun` shows the actions as a text log. `--node` changes the `vjepa2` part of the topics.
+`xblick rerun` shows the actions as a text log. `--node` changes the `vjepa2` part of the topics.
 
 The node reads `<camera>/color` in the encoding `rgb8`, `rgba8`, `bgr8`, `bgra8` or `mono8`.
 [How the node works](docs/design.md) describes the tokens and how a head reads them.
@@ -35,7 +35,7 @@ The node reads `<camera>/color` in the encoding `rgb8`, `rgba8`, `bgr8`, `bgra8`
 | --- | --- |
 | GPU | an NVIDIA GPU with CUDA. We tested on an RTX PRO 6000. |
 | VRAM | 1.4 GiB with clips of 16 frames at 8 frames per second (the node alone, 1280 x 720 at 30 frames per second, measured 2026-11-02) |
-| Durchblick | 0.4 or newer, below 0.5 (Python package `blick`) |
+| Durchblick | 0.5 or newer, below 0.6 (Python package `xblick`) |
 | Python | 3.12, which `tools/setup.sh` installs into `.venv` |
 | Tools for the setup | uv and git |
 | Disk | 1.4 GB for the checkpoint |
@@ -64,21 +64,21 @@ only what is missing.
 Start a Zenoh router (`zenohd`) on the PC, then start the node. The camera name is an example.
 
 ```bash
-.venv/bin/durchblick-vjepa2 --camera robot/camera
+.venv/bin/xblick-vjepa2 --camera robot/camera
 ```
 
 Look at the result in Durchblick's viewer. It shows the actions as a text log beside the images.
 
 ```bash
-blick rerun --spawn
+xblick rerun --spawn
 ```
 
 Two variants publish only the tokens, or use a head of your own. Such a head is a `VJEPA2ForVideoClassification`
 that you saved with `save_pretrained`.
 
 ```bash
-.venv/bin/durchblick-vjepa2 --camera robot/camera --no-labels
-.venv/bin/durchblick-vjepa2 --camera robot/camera --checkpoint /path/to/our_head
+.venv/bin/xblick-vjepa2 --camera robot/camera --no-labels
+.venv/bin/xblick-vjepa2 --camera robot/camera --checkpoint /path/to/our_head
 ```
 
 | Option | Default | Meaning |
@@ -97,7 +97,7 @@ that you saved with `save_pretrained`.
 
 [How the node works](docs/design.md) explains the options in detail.
 
-Every option is also a parameter of the node `<camera>/vjepa2`, which Durchblick's terminal interface (`blick`, tab Parameters) and `blick param` show. `top` changes while the node runs. The other options apply at the next start, where `--param NAME:=VALUE` or `--params-file FILE` set them.
+Every option is also a parameter of the node `<camera>/vjepa2`, which Durchblick's terminal interface (`xblick`, tab Parameters) and `xblick param` show. `top` changes while the node runs. The other options apply at the next start, where `--param NAME:=VALUE` or `--params-file FILE` set them.
 
 ## Why it is fast
 
@@ -127,11 +127,11 @@ The encoder needs 17 ms per clip of 16 frames on an RTX PRO 6000, and the head n
 - [How the node works](docs/design.md): the encoder, the clip, the tokens, a head that reads them, the options,
   use from Python, tests
 - [Speed](docs/performance.md): the timings and the live measurement
-- Durchblick: [streams and topics](https://github.com/xblick/durchblick/blob/main/docs/concepts/streams-and-topics.md),
-  [frames on the GPU](https://github.com/xblick/durchblick/blob/main/docs/concepts/gpu-frames.md),
-  [rings](https://github.com/xblick/durchblick/blob/main/docs/concepts/rings.md),
-  [transports](https://github.com/xblick/durchblick/blob/main/docs/concepts/transports.md),
-  [sessions and routers](https://github.com/xblick/durchblick/blob/main/docs/concepts/sessions.md)
+- Durchblick: [streams and topics](https://github.com/xblick/xblick/blob/main/docs/concepts/streams-and-topics.md),
+  [frames on the GPU](https://github.com/xblick/xblick/blob/main/docs/concepts/gpu-frames.md),
+  [rings](https://github.com/xblick/xblick/blob/main/docs/concepts/rings.md),
+  [transports](https://github.com/xblick/xblick/blob/main/docs/concepts/transports.md),
+  [sessions and routers](https://github.com/xblick/xblick/blob/main/docs/concepts/sessions.md)
 
 ## Licence and credits
 

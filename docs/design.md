@@ -1,6 +1,6 @@
 # How the node works
 
-This page describes the encoder, how durchblick-vjepa2 forms a clip from a camera stream, what the tokens are and
+This page describes the encoder, how xblick-vjepa2 forms a clip from a camera stream, what the tokens are and
 how a head reads them. It also explains the options, the use from Python and the tests.
 
 ## The encoder and its heads
@@ -70,7 +70,7 @@ there without a copy to the CPU.
 A head reads the tokens as they arrive. The topic name is an example.
 
 ```python
-import torch, blick as db
+import torch, xblick as db
 tokens = db.ImageSubscriber(session, "robot/camera/vjepa2/tokens", local="cuda")
 frame = tokens.latest(timeout=1.0)
 x = torch.as_tensor(frame.image, device="cuda")[None]   # (1, 2048, 1024) float16, as VJEPA2AttentivePooler takes it

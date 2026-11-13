@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import torch
 
-from durchblick_vjepa2.model import WEIGHTS, VJepa2
+from xblick_vjepa2.model import WEIGHTS, VJepa2
 
 pytestmark = pytest.mark.skipif(not torch.cuda.is_available() or not (WEIGHTS / "ssv2" / "model.safetensors").is_file(),
                                 reason="needs a GPU and weights/ssv2 (tools/setup.sh)")

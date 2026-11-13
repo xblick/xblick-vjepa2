@@ -1,7 +1,7 @@
-"""durchblick-vjepa2: V-JEPA 2's video features (model.py) of a camera's colour stream, and the actions an attentive
+"""xblick-vjepa2: V-JEPA 2's video features (model.py) of a camera's colour stream, and the actions an attentive
 head reads from them (Meta's Something-Something v2 head by default).
 
-    durchblick-vjepa2 --camera robot/camera [--color <camera>/color] [--node vjepa2] \\
+    xblick-vjepa2 --camera robot/camera [--color <camera>/color] [--node vjepa2] \\
                       [--frames 16] [--fps 8] [--checkpoint ssv2 | <directory>] [--top 5] [--no-labels] \\
                       [--local shm|cuda]
                       [--connect ...] [--listen ...] [--config FILE]   (default: the PC's Zenoh router)
@@ -31,11 +31,11 @@ import sys
 import threading
 import time
 
-import blick as db
-from blick import mps, node, tensors, topics
-from blick.camera import check_local
-from blick.history import FrameHistory
-from blick.session import add_arguments, open_from_args
+import xblick as db
+from xblick import mps, node, tensors, topics
+from xblick.camera import check_local
+from xblick.history import FrameHistory
+from xblick.session import add_arguments, open_from_args
 
 from .clip import Clip
 
@@ -50,7 +50,7 @@ def clip_due(newest: int, clipped: int, period_ns: int | None) -> bool:
 
 
 def main(argv=None) -> int:
-    parser = argparse.ArgumentParser(prog="durchblick-vjepa2", description=__doc__,
+    parser = argparse.ArgumentParser(prog="xblick-vjepa2", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--camera", required=True, help="the camera's base, e.g. robot/camera")
     parser.add_argument("--color", default=None, help="the colour stream (default <camera>/color)")
@@ -86,7 +86,7 @@ def main(argv=None) -> int:
     camera = topics.check_name(args.camera)
     color_base = args.color or f"{camera}/color"
 
-    node.start("durchblick-vjepa2", max_hz=args.max_hz, local=args.local)
+    node.start("xblick-vjepa2", max_hz=args.max_hz, local=args.local)
 
     import torch  # noqa: PLC0415 - with the model, after the arguments are checked
 
@@ -95,7 +95,7 @@ def main(argv=None) -> int:
     device = torch.device(args.device)
     model = VJepa2(args.checkpoint, device, labels=not args.no_labels)
     if model.labels and args.frames != model.frames_trained:
-        print(f"durchblick-vjepa2: the head was trained on clips of {model.frames_trained} frames, these have "
+        print(f"xblick-vjepa2: the head was trained on clips of {model.frames_trained} frames, these have "
               f"{args.frames}", flush=True)
     wake = threading.Event()
     # every frame: a clip's frames are 1/--fps apart, and --max-hz limits the clips, not their frames
@@ -108,10 +108,10 @@ def main(argv=None) -> int:
                                     codec=None)  # half floats: no compressed form
     actions_pub = (db.DetectionPublisher(session, topics.detections(camera, args.node, "actions"), db.Classification)
                    if model.labels else None)
-    report = node.Reporter(session, camera, args.node, "durchblick-vjepa2", max_hz=args.max_hz)
+    report = node.Reporter(session, camera, args.node, "xblick-vjepa2", max_hz=args.max_hz)
     report.watch(color)
     outputs = "tokens" + (",actions" if actions_pub is not None else "")
-    print(f"durchblick-vjepa2: {color_base} -> {camera}/{args.node}/{{{outputs}}}: clips of {args.frames} frames at "
+    print(f"xblick-vjepa2: {color_base} -> {camera}/{args.node}/{{{outputs}}}: clips of {args.frames} frames at "
           f"{args.fps:g} frames/s ({model.tokens_of(args.frames)} tokens of {model.width})"
           + (f", {len(model.labels)} classes ({args.checkpoint})" if model.labels else ""), flush=True)
     counts = report.counts

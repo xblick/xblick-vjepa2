@@ -1,6 +1,6 @@
 """clip.py: which frames make a clip, whatever the camera's rate; gaps, the start and a stream starting over."""
 
-from durchblick_vjepa2.clip import Clip, pick
+from xblick_vjepa2.clip import Clip, pick
 
 MS = 1_000_000
 PERIOD = 125 * MS  # 8 frames/s
@@ -53,7 +53,7 @@ def test_the_clip_keeps_a_clip_and_starts_over_when_time_goes_back():
 
 def test_max_hz_limits_the_clips_not_their_frames():
     """--max-hz: of a 30 frames/s stream's clips, the first of each 1/max-hz period is encoded; without a rate all."""
-    from durchblick_vjepa2.node import clip_due
+    from xblick_vjepa2.node import clip_due
 
     for max_hz, expected in ((None, 91), (4.0, 13), (1.0, 4)):
         period = None if max_hz is None else round(1e9 / max_hz)

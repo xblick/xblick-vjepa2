@@ -1,12 +1,12 @@
 # AGENTS.md
 
-durchblick-vjepa2: Meta's V-JEPA 2 ViT-L video encoder as a Durchblick node. Publishes the encoder's tokens for the
+xblick-vjepa2: Meta's V-JEPA 2 ViT-L video encoder as a Durchblick node. Publishes the encoder's tokens for the
 newest clip of a colour stream (the main output: heads of our own read them) and the top classes of the
 Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassification`), a dependency. Version
-0.1.0, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
+0.2.0, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
 `README.md` (topics, options, limits), `docs/design.md`, `docs/performance.md`. Transport-wide traps
 (Zenoh sessions, CUDA rings, looped playback, hanging tests) are in the core's `AGENTS.md`
-(github.com/xblick/durchblick). Style of all documentation: the core's `docs/project/writing-docs.md`.
+(github.com/xblick/xblick). Style of all documentation: the core's `docs/project/writing-docs.md`.
 
 ## Commands
 
@@ -15,16 +15,16 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 .venv/bin/python -m pytest -q                      # 11 tests; test_model.py needs a CUDA device and weights/ssv2
 .venv/bin/python -m pytest -q tests/test_clip.py   # CPU only: which frames make a clip
 .venv/bin/ruff check src tests                     # lint; 120 columns, rules in pyproject.toml
-.venv/bin/durchblick-vjepa2 --camera robot/camera   # needs zenohd on the PC
+.venv/bin/xblick-vjepa2 --camera robot/camera   # needs zenohd on the PC
 ```
 
-- Console script: `durchblick-vjepa2`. `--no-labels`: tokens only. `--checkpoint DIR`: a head of our own.
+- Console script: `xblick-vjepa2`. `--no-labels`: tokens only. `--checkpoint DIR`: a head of our own.
 - `tools/setup.sh` needs uv (`UV` names it) and git. It downloads only what is missing.
 - Durations: not recorded.
 - torchvision is a dev dependency only (transformers' video processor in the tests).
-- Without a camera: a simulation that publishes a camera, or `blick play <recording.mcap> --loop`.
+- Without a camera: a simulation that publishes a camera, or `xblick play <recording.mcap> --loop`.
   Input is `<camera>/color` only, no other node needed.
-- `blick rerun --spawn` shows the actions as a text log.
+- `xblick rerun --spawn` shows the actions as a text log.
 
 ## Rules
 
@@ -34,7 +34,7 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 - Work offline. Checkpoints come from `model.CHECKPOINTS` (repository, fixed revision) through `tools/setup.sh` into
   `weights/<name>`. `--checkpoint` takes such a name or a directory saved with `save_pretrained`.
 - Do not reorder the tokens for the transport.
-- Durchblick pin: `blick>=0.4,<0.5` (the core's Python package).
+- Durchblick pin: `xblick>=0.5.0,<0.6` (the core's Python package).
 - 120 columns. Docstrings say what, comments say why.
 - Update `README.md` and `docs/` with every change of behaviour.
 - Run GPU tests and live checks in the background with `timeout`. Stop them by PID.
@@ -62,9 +62,9 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 
 | Path | Content |
 | --- | --- |
-| `src/durchblick_vjepa2/model.py` | `VJepa2`: `prepare` (per frame), `encode` (per clip), `classify`; `CHECKPOINTS` |
-| `src/durchblick_vjepa2/clip.py` | `pick`/`Clip`: which frames make the clip, by stamp |
-| `src/durchblick_vjepa2/node.py` | the node: subscription, clip, publishing tokens/actions, diagnostics |
+| `src/xblick_vjepa2/model.py` | `VJepa2`: `prepare` (per frame), `encode` (per clip), `classify`; `CHECKPOINTS` |
+| `src/xblick_vjepa2/clip.py` | `pick`/`Clip`: which frames make the clip, by stamp |
+| `src/xblick_vjepa2/node.py` | the node: subscription, clip, publishing tokens/actions, diagnostics |
 | `weights/<name>/` | `config.json`, `model.safetensors` (`tools/setup.sh`). Not in git. |
 | `tests/` | `test_clip.py` (CPU), `test_model.py` (GPU) |
 | `tools/setup.sh` | venv and checkpoint |
