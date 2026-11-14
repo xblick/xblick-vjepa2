@@ -2,13 +2,12 @@
 
 Downloads go to a local HTTP server: URL files directly, Hugging Face files through HF_ENDPOINT (the node's own
 request, its redirect to a second path, the token only to the first). Where network use must not happen, any use
-fails the test. The node itself runs in this process up to its model, which a stand-in replaces. The part from
+fails the test. The node itself runs in this process up to the end of its weights step. The part from
 "the same in every node's test_weights.py" on is the same in every node."""
 
 import contextlib
 import hashlib
 import http.server
-import importlib
 import io
 import os
 import signal
@@ -26,7 +25,6 @@ from xblick_vjepa2 import node, weights
 
 TERMS_LINE = "V-JEPA 2 is the work of Meta"  # the first line of weights.TERMS
 NETWORK = True  # the weights come from the network
-MODEL = ("xblick_vjepa2.model", "VJepa2")  # what loads the model, after the weights
 
 WITHOUT_SHA256 = ()  # files whose source states no SHA-256
 
@@ -392,21 +390,22 @@ def test_download_only_downloads_and_exits_0(home, stand_in, capsys):
 
 
 class Started(Exception):
-    """The node got past its weights to the model."""
+    """The node got past its weights: what follows (the model, the GPU) is not this test's."""
 
 
 @pytest.fixture
 def started(monkeypatch, tmp_path):
-    """The node's model replaced by one that raises Started; a Zenoh session the node connects to; the node's
-    parameters kept."""
+    """weights.ensure raising Started once it returned (the node's start stops there, before anything touches the GPU:
+    the tests need none); a Zenoh session the node connects to; the node's parameters kept."""
     from xblick import node as core_node
 
-    module, name = MODEL
+    ensure = weights.ensure
 
-    def stand_in_model(*args, **kwargs):
+    def ensure_then_stop(*args, **kwargs):
+        ensure(*args, **kwargs)
         raise Started
 
-    monkeypatch.setattr(importlib.import_module(module), name, stand_in_model)
+    monkeypatch.setattr(weights, "ensure", ensure_then_stop)
     kept = []
 
     class Kept(core_node.Parameters):
