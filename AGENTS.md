@@ -15,7 +15,7 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 .venv/bin/python -m pytest -q                      # 11 tests; test_model.py needs a CUDA device and weights/ssv2
 .venv/bin/python -m pytest -q tests/test_clip.py   # CPU only: which frames make a clip
 .venv/bin/ruff check src tests                     # lint; 120 columns, rules in pyproject.toml
-.venv/bin/xblick-vjepa2 --camera robot/camera   # needs zenohd on the PC
+.venv/bin/xblick-vjepa2 --camera test/camera   # needs zenohd on the PC
 ```
 
 - Console script: `xblick-vjepa2`. `--no-labels`: tokens only. `--checkpoint DIR`: a head of our own.

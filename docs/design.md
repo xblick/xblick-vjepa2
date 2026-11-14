@@ -71,7 +71,7 @@ A head reads the tokens as they arrive. The topic name is an example.
 
 ```python
 import torch, xblick as db
-tokens = db.ImageSubscriber(session, "robot/camera/vjepa2/tokens", local="cuda")
+tokens = db.ImageSubscriber(session, "test/camera/vjepa2/tokens", local="cuda")
 frame = tokens.latest(timeout=1.0)
 x = torch.as_tensor(frame.image, device="cuda")[None]   # (1, 2048, 1024) float16, as VJEPA2AttentivePooler takes it
 ```

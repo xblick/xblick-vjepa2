@@ -1,5 +1,7 @@
 # xblick-vjepa2
 
+[![xblick core](https://img.shields.io/pypi/v/xblick?label=xblick%20core&color=blue)](https://github.com/xblick/xblick)
+
 This [Durchblick](https://github.com/xblick/xblick) node computes video features for the newest
 clip of a camera's colour stream, and it names the actions that a classification head reads from them. The encoder
 needs 17 ms per clip of 16 frames, and the node produced a clip for every frame of a camera at 15 frames per second.
@@ -64,7 +66,7 @@ only what is missing.
 Start a Zenoh router (`zenohd`) on the PC, then start the node. The camera name is an example.
 
 ```bash
-.venv/bin/xblick-vjepa2 --camera robot/camera
+.venv/bin/xblick-vjepa2 --camera test/camera
 ```
 
 Look at the result in Durchblick's viewer. It shows the actions as a text log beside the images.
@@ -77,8 +79,8 @@ Two variants publish only the tokens, or use a head of your own. Such a head is 
 that you saved with `save_pretrained`.
 
 ```bash
-.venv/bin/xblick-vjepa2 --camera robot/camera --no-labels
-.venv/bin/xblick-vjepa2 --camera robot/camera --checkpoint /path/to/our_head
+.venv/bin/xblick-vjepa2 --camera test/camera --no-labels
+.venv/bin/xblick-vjepa2 --camera test/camera --checkpoint /path/to/our_head
 ```
 
 | Option | Default | Meaning |

@@ -1,7 +1,7 @@
 """xblick-vjepa2: V-JEPA 2's video features (model.py) of a camera's colour stream, and the actions an attentive
 head reads from them (Meta's Something-Something v2 head by default).
 
-    xblick-vjepa2 --camera robot/camera [--color <camera>/color] [--node vjepa2] \\
+    xblick-vjepa2 --camera test/camera [--color <camera>/color] [--node vjepa2] \\
                       [--frames 16] [--fps 8] [--checkpoint ssv2 | <directory>] [--top 5] [--no-labels] \\
                       [--local shm|cuda]
                       [--connect ...] [--listen ...] [--config FILE]   (default: the PC's Zenoh router)
@@ -52,7 +52,7 @@ def clip_due(newest: int, clipped: int, period_ns: int | None) -> bool:
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(prog="xblick-vjepa2", description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--camera", required=True, help="the camera's base, e.g. robot/camera")
+    parser.add_argument("--camera", required=True, help="the camera's base, e.g. test/camera")
     parser.add_argument("--color", default=None, help="the colour stream (default <camera>/color)")
     parser.add_argument("--node", default="vjepa2", help="the results' part of the topic: <camera>/<node>/...")
     parser.add_argument("--frames", type=int, default=16,
