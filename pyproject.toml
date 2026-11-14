@@ -1,6 +1,6 @@
 [project]
 name = "xblick-vjepa2"
-version = "0.2.1"
+version = "0.2.2"
 description = "V-JEPA 2 (Meta's self-supervised video encoder) as a Durchblick node: a clip's tokens and its actions"
 readme = "README.md"
 license = "Apache-2.0"
@@ -8,7 +8,7 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "David Schneider" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "xblick>=0.5.0,<0.6",  # the Durchblick core: node, history, tensors, parameters, vision_msgs/Classification
+    "xblick>=0.5.3,<0.6",  # the Durchblick core: node, history, tensors, parameters, vision_msgs/Classification
     "transformers>=5,<6",  # VJEPA2ForVideoClassification (transformers 4.53+); 5: from_pretrained(dtype=)
     "torch>=2.10",
     "numpy>=1.26",

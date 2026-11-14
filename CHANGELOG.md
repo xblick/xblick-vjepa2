@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2 (2026-11-14)
+
+- The download of the weights is the core's `xblick.weights` (xblick 0.5.3). The node's own copy of that code is
+  gone. `weights.py` keeps the node's files, its terms notice and its `STORE`. The options, the messages, and the
+  files and their places stay as they were.
+- The node needs `xblick>=0.5.3,<0.6`.
+- `tests/test_weights.py` keeps the node's own checks. The core's tests cover the download itself.
+
 ## 0.2.1 (2026-11-14)
 
 - The node downloads missing weights at its start, before the model loads. It prints the model's terms, the files

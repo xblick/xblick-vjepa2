@@ -107,7 +107,8 @@ them it connects to the Zenoh router of the PC.
 `weights.py` lists the files that the node reads. `CHECKPOINTS` names the Hugging Face repository, the fixed
 revision, and the size and SHA-256 of each file. The SHA-256 of `model.safetensors` is the one Hugging Face states for
 the file at that revision (`lfs.oid`). That of `config.json` is the hash of the file at that revision. Both agree
-with copies that we downloaded earlier. The node and `tools/setup.sh` use this one list.
+with copies that we downloaded earlier. The node and `tools/setup.sh` use this one list. The download itself (lock, `.part` files, checks, progress) is the core's `xblick.weights`:
+`weights.STORE` is the node's `xblick.weights.Store`.
 
 At its start, before it loads the model, the node checks that every file exists. When all files exist, the node
 opens no network connection and writes no file, so it starts offline. When a file is missing, the node takes the
@@ -125,7 +126,7 @@ A failure ends the node with one line that says what to do. Ctrl-C or SIGTERM du
 once with the exit code 130 or 143. The node then removes the `.part` file.
 
 `--download-only` downloads and checks the files, then ends. It needs no camera, no Zenoh router and no GPU.
-`weights.parse_args` lifts the requirement of `--camera` when the command line contains `--download-only`.
+`xblick.weights.parse_args` lifts the requirement of `--camera` when the command line contains `--download-only`.
 `--no-download` ends the node when a file is missing and names the file. It is a read-only parameter like every
 other start option. `--download-only` is a mode of the command line and has no parameter.
 
@@ -151,7 +152,7 @@ You can use the model without Durchblick (`model.py`).
 | File | Needs | What it checks |
 | --- | --- | --- |
 | `tests/test_clip.py` | CPU | which frames form a clip at camera rates above and below the rate of the clip, gaps, the start, a stream that starts over |
-| `tests/test_weights.py` | CPU, a local HTTP server | the list of files, no network use when all files exist, a download through the Hugging Face path with its redirect, the check, a wrong checksum, Ctrl-C and SIGTERM, two processes at once, the progress in a log file, `--download-only` and `--no-download` |
+| `tests/test_weights.py` | CPU, a local HTTP server | the files, their sizes and SHA-256, a changed `model.safetensors` refused, the node's `STORE`, `--download-only` and `--no-download`, a start that stops after its weights step without a GPU. The download itself: the core's tests |
 | `tests/test_model.py` | a CUDA device and `weights/ssv2` | the inputs equal those of transformers' `VJEPA2VideoProcessor` for four frame sizes. The tokens have the expected shape. The probabilities equal those of transformers' `VJEPA2ForVideoClassification` on the same inputs. |
 
 torchvision is a development dependency only. The video processor of transformers needs it in the tests.
