@@ -1,6 +1,9 @@
 # xblick-vjepa2
 
 [![xblick core](https://img.shields.io/pypi/v/xblick?label=xblick%20core&color=blue)](https://github.com/xblick/xblick)
+[![tests](https://github.com/xblick/xblick-vjepa2/actions/workflows/tests.yml/badge.svg)](https://github.com/xblick/xblick-vjepa2/actions/workflows/tests.yml)
+[![licence](https://img.shields.io/badge/licence-Apache--2.0-blue)](LICENSE)
+[![device](https://img.shields.io/badge/needs-NVIDIA%20GPU-76b900)](README.md)
 
 This [Durchblick](https://github.com/xblick/xblick) node computes video features for the newest
 clip of a camera's colour stream, and it names the actions that a classification head reads from them. The encoder
