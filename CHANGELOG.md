@@ -9,6 +9,9 @@
 - `--no-download` ends a start at once when a weight file is missing and names it. It is a read-only parameter.
 - `weights.py` is the one list of the weight files. `model.CHECKPOINTS` moved there and gained the file sizes.
 - A download goes to `<name>.part` under the lock `weights/.download.lock` and gets its final name after the check.
+- Each weight file has its SHA-256 in `weights.py`: Hugging Face's `lfs.oid` at the fixed revision for
+  `model.safetensors`, the hash of the file at that revision for `config.json`. A download is checked against it and
+  against the exact size; `--download-only` also checks the files that exist.
 
 ## 0.2.0 (2026-11-13)
 

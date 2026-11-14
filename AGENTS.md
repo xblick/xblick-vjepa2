@@ -12,7 +12,7 @@ Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassif
 
 ```bash
 tools/setup.sh                                     # uv sync --frozen, then xblick-vjepa2 --download-only
-.venv/bin/python -m pytest -q                      # 32 tests; test_model.py needs a CUDA device and weights/ssv2
+.venv/bin/python -m pytest -q                      # 35 tests; test_model.py needs a CUDA device and weights/ssv2
 .venv/bin/python -m pytest -q tests/test_clip.py   # CPU only: which frames make a clip
 .venv/bin/python -m pytest -q tests/test_weights.py  # CPU only, 8 s: downloads from a local HTTP server
 .venv/bin/xblick-vjepa2 --download-only            # SSv2 checkpoint (1.5 GB) into weights/ssv2 if missing, then exit 0
@@ -34,7 +34,7 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
 - Match transformers exactly. `model.prepare` reimplements `VJEPA2VideoProcessor` on the GPU. `tests/test_model.py`
   checks inputs for four frame sizes and the probabilities against `VJEPA2ForVideoClassification`. Keep those tests
   green after any change to the preprocessing or the model call.
-- Weights: `weights.py` is the one list (`CHECKPOINTS`: repository, fixed revision, file sizes; `model.py` imports
+- Weights: `weights.py` is the one list (`CHECKPOINTS`: repository, fixed revision, file sizes and SHA-256 (HF `lfs.oid`, small files hashed); `model.py` imports
   it). `weights.ensure` runs at the start before the model loads; `--download-only` runs it alone. All files there:
   no network, no file written (the nodes start offline; `test_weights.py` checks it). Keep it so.
 - Downloads: `<name>.part` in the target directory, renamed after the check, under the lock

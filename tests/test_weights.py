@@ -28,6 +28,8 @@ TERMS_LINE = "V-JEPA 2 is the work of Meta"  # the first line of weights.TERMS
 NETWORK = True  # the weights come from the network
 MODEL = ("xblick_vjepa2.model", "VJepa2")  # what loads the model, after the weights
 
+WITHOUT_SHA256 = ()  # files whose source states no SHA-256
+
 
 def start_options(tmp_path) -> list[str]:
     """A start's required options."""
@@ -44,6 +46,9 @@ def stand_in(home, server, monkeypatch):
     monkeypatch.setenv("HF_ENDPOINT", server.url)
     server.files["/config.json"] = b"{}"
     server.files["/model.safetensors"] = DATA
+    repo, revision, _ = weights.CHECKPOINTS["ssv2"]
+    monkeypatch.setitem(weights.CHECKPOINTS, "ssv2", (repo, revision, {
+        "config.json": (2, hashlib.sha256(b"{}").hexdigest()), "model.safetensors": (len(DATA), DATA_SHA)}))
     return {home / "ssv2" / "config.json": b"{}", home / "ssv2" / "model.safetensors": DATA}
 
 
@@ -56,8 +61,20 @@ def test_the_files_are_the_ssv2_checkpoint_at_its_revision():
         assert w.source.revision == "4aa02df83918538fc21cfaf576382fa20e489a80" and not w.source.gated
         assert w.source.url().endswith(f"/facebook/vjepa2-vitl-fpc16-256-ssv2/resolve/{w.source.revision}/"
                                        + w.path.name)
-    assert sum(w.size for w in ws) > 1.4e9
+    assert [(w.size, w.sha256) for w in ws] == [  # Hugging Face's lfs.oid; config.json hashed at the revision
+        (14_953, "9ea266370f726ba85ba03080abab9632233d0742a084f0106d90d909772e4aab"),
+        (1_502_018_592, "35aeab96e8513d9cc60ee08c1642dd121c86452c926ce3599b3317896a320396")]
     assert weights.needed("/some/head/of/ours") == []  # a directory of one's own: nothing to download
+
+
+def test_a_changed_checkpoint_file_is_refused(home, server, monkeypatch):
+    monkeypatch.setenv("HF_ENDPOINT", server.url)
+    server.files["/model.safetensors"] = DATA
+    real = weights.needed("ssv2")[1]
+    w = weights.Weight(home / "model.safetensors", real.source, len(DATA), real.sha256)  # the real SHA-256
+    with pytest.raises(weights.WeightsError, match="model.safetensors.part: wrong SHA-256.*35aeab96"):
+        weights.ensure([w], out=io.StringIO())
+    assert not w.path.exists()
 
 
 def test_download_only_with_a_directory_downloads_nothing(home, no_network, capsys):
@@ -223,6 +240,20 @@ def test_a_wrong_checksum_keeps_the_download_aside_and_says_to_remove_it(home, s
     assert not w.path.exists() and (home / "a.bin.part").read_bytes() == DATA
 
 
+def test_a_download_of_another_length_is_refused_and_kept_aside(home, server):
+    w = url_weight(home, server, sha=None)
+    w = weights.Weight(w.path, w.source, len(DATA) + 1)  # a size in code that the source no longer has
+    with pytest.raises(weights.WeightsError, match=rf"a.bin.part: {len(DATA)} bytes, expected {len(DATA) + 1}.*remove"):
+        weights.ensure([w], out=io.StringIO())
+    assert not w.path.exists() and (home / "a.bin.part").exists()
+
+
+def test_every_file_of_the_node_has_its_exact_size_and_sha256():
+    for w in default_weights():
+        assert w.size > 0 and (w.sha256 is None) == (w.path.name in WITHOUT_SHA256), w.path.name
+        assert w.sha256 is None or len(w.sha256) == 64
+
+
 def test_download_only_checks_present_files_against_their_sha256(home, no_network):
     w = weights.Weight(home / "a.bin", weights.Url("http://127.0.0.1:9/a.bin"), 1, DATA_SHA)
     place({w.path: b"x"})
@@ -291,11 +322,11 @@ from pathlib import Path
 from {weights.__name__} import Url, Weight, WeightsError, ensure, fail
 import {weights.__name__} as weights
 signal.signal(signal.SIGINT, signal.default_int_handler)  # also where a background shell ignores it
-root, url, sha = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+root, url, sha, size = Path(sys.argv[1]), sys.argv[2], sys.argv[3], int(sys.argv[4])
 weights.WEIGHTS = root
 weights.REQUIRED = ()
 try:
-    ensure([Weight(root / "a.bin", Url(url), 1, sha)])
+    ensure([Weight(root / "a.bin", Url(url), size, sha)])
 except WeightsError as error:
     sys.exit(fail(error))
 print("done", flush=True)
@@ -303,7 +334,7 @@ print("done", flush=True)
 
 
 def child(root: Path, server: Server) -> subprocess.Popen:
-    return subprocess.Popen([sys.executable, "-c", CHILD, str(root), f"{server.url}/a.bin", DATA_SHA],
+    return subprocess.Popen([sys.executable, "-c", CHILD, str(root), f"{server.url}/a.bin", DATA_SHA, str(len(DATA))],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 

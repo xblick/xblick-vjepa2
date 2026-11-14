@@ -5,7 +5,9 @@ This module is the one list of them: the node's start and ``tools/setup.sh`` (th
 missing file is downloaded under a temporary name in its directory (``<name>.part``), checked and only then renamed,
 all under a file lock, so that two nodes started at once download once and never read half a file.
 
-* ``CHECKPOINTS``: name -> (Hugging Face repository, revision, {file: size in bytes}), in ``weights/<name>``
+* ``CHECKPOINTS``: name -> (Hugging Face repository, revision, {file: (size in bytes, SHA-256)}), in
+  ``weights/<name>``; the SHA-256 of an LFS file is Hugging Face's ``lfs.oid`` at the revision, that of a small file
+  the hash of the file at the revision (both checked against a copy downloaded before)
 * ``needed(checkpoint)``: the files a start with ``--checkpoint`` reads (none for a directory of one's own)
 
 The rest of this file (from ``Weight`` on) is the same in every node's ``weights.py``.
@@ -31,9 +33,10 @@ PROG = "xblick-vjepa2"
 REQUIRED = ()  # (path, what): code from tools/setup.sh that must be there first; none here
 REPO = Path(__file__).resolve().parents[2]
 WEIGHTS = REPO / "weights"
-CHECKPOINTS = {  # name -> (Hugging Face repository, revision, {file: size}): into weights/<name>
-    "ssv2": ("facebook/vjepa2-vitl-fpc16-256-ssv2", "4aa02df83918538fc21cfaf576382fa20e489a80",
-             {"config.json": 14_953, "model.safetensors": 1_502_018_592}),
+CHECKPOINTS = {  # name -> (Hugging Face repository, revision, {file: (size, SHA-256)}): into weights/<name>
+    "ssv2": ("facebook/vjepa2-vitl-fpc16-256-ssv2", "4aa02df83918538fc21cfaf576382fa20e489a80", {
+        "config.json": (14_953, "9ea266370f726ba85ba03080abab9632233d0742a084f0106d90d909772e4aab"),
+        "model.safetensors": (1_502_018_592, "35aeab96e8513d9cc60ee08c1642dd121c86452c926ce3599b3317896a320396")}),
 }
 CHECKPOINT_FILES = ("config.json", "model.safetensors")
 TERMS = """\
@@ -46,8 +49,8 @@ def needed(checkpoint: str) -> list[Weight]:
     """The files of ``--checkpoint``: those of a name in CHECKPOINTS, none for a directory (the user's own)."""
     if checkpoint not in CHECKPOINTS:
         return []
-    repo, revision, sizes = CHECKPOINTS[checkpoint]
-    return [Weight(WEIGHTS / checkpoint / f, HuggingFace(repo, revision, f), sizes[f]) for f in CHECKPOINT_FILES]
+    repo, revision, files = CHECKPOINTS[checkpoint]
+    return [Weight(WEIGHTS / checkpoint / f, HuggingFace(repo, revision, f), *files[f]) for f in CHECKPOINT_FILES]
 
 
 # ---------------------------------------------------------------------------- the same in every node's weights.py
@@ -112,8 +115,8 @@ class Url:
 
 @dataclass(frozen=True)
 class Weight:
-    """One file the node reads: where it is (``path``), where it comes from (``source``), about how large it is
-    (``size``, bytes, for the announcement) and, where known, its SHA-256."""
+    """One file the node reads: where it is (``path``), where it comes from (``source``), its exact size (``size``,
+    bytes: announced, and a download of another length is refused) and, where known, its SHA-256."""
 
     path: Path
     source: object  # HuggingFace, Url or a source of the node's own: describe() and fetch(tmp, progress) -> SHA-256
@@ -211,8 +214,8 @@ def ensure(weights: list[Weight], *, download: bool = True, verify: bool = False
 
 
 def _download(w: Weight, out):
-    """One file: into ``<name>.part``, its SHA-256 checked where known, renamed. A failed check keeps the .part file
-    for a look; any other failure or an interrupt removes it."""
+    """One file: into ``<name>.part``, its size and (where known) its SHA-256 checked, renamed. A failed check keeps
+    the .part file for a look; any other failure or an interrupt removes it."""
     tmp = w.path.with_name(w.path.name + ".part")
     w.path.parent.mkdir(parents=True, exist_ok=True)
     print(f"{PROG}: {w.path.name} ({_size(w.size)}) from {w.source.describe()}", file=out, flush=True)
@@ -224,11 +227,14 @@ def _download(w: Weight, out):
         raise
     finally:
         progress.end()
+    if (length := tmp.stat().st_size) != w.size:
+        raise WeightsError(f"{_short(tmp)}: {length} bytes, expected {w.size}: the source changed or the download is "
+                           "damaged; remove it, then start again")
     if w.sha256 is not None and digest != w.sha256:
         raise WeightsError(f"{_short(tmp)}: wrong SHA-256 ({digest}, expected {w.sha256}): the source changed or the "
                            "download is damaged; remove it, then start again")
     os.replace(tmp, w.path)
-    print(f"{PROG}: {_short(w.path)}: " + ("SHA-256 checked" if w.sha256 else "complete") + ", in place",
+    print(f"{PROG}: {_short(w.path)}: " + ("size and SHA-256 checked" if w.sha256 else "size checked") + ", in place",
           file=out, flush=True)
 
 

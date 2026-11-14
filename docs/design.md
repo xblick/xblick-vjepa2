@@ -105,7 +105,9 @@ them it connects to the Zenoh router of the PC.
 ## Weights
 
 `weights.py` lists the files that the node reads. `CHECKPOINTS` names the Hugging Face repository, the fixed
-revision and the size of each file. The node and `tools/setup.sh` use this one list.
+revision, and the size and SHA-256 of each file. The SHA-256 of `model.safetensors` is the one Hugging Face states for
+the file at that revision (`lfs.oid`). That of `config.json` is the hash of the file at that revision. Both agree
+with copies that we downloaded earlier. The node and `tools/setup.sh` use this one list.
 
 At its start, before it loads the model, the node checks that every file exists. When all files exist, the node
 opens no network connection and writes no file, so it starts offline. When a file is missing, the node takes the
@@ -114,8 +116,9 @@ The node writes a file as `<name>.part` in the same directory and renames it aft
 its final name only when it is complete. A second node that starts at the same time waits for the lock. It then
 finds the files and does not download them again.
 
-The check compares the length of the download with the length that the server announced. The fixed revision
-determines the content. The progress is a line that updates in place on a terminal. In a log file it is one line
+The check compares the length of the download with the length that the server announced and with the size in
+`weights.py`. Then it compares the SHA-256. A wrong size or SHA-256 keeps the download as `<name>.part`, and the
+error names it. Remove it, then start again. `--download-only` also checks the SHA-256 of files that exist. The progress is a line that updates in place on a terminal. In a log file it is one line
 per tenth of the file.
 
 A failure ends the node with one line that says what to do. Ctrl-C or SIGTERM during a download end the node at
