@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.1 (2026-11-14)
+
+- The node downloads missing weights at its start, before the model loads. It prints the model's terms, the files
+  and their size first. With all weights there it uses no network and writes no file.
+- `--download-only` downloads and checks the weights, then exits 0. It needs no camera, Zenoh router or GPU, and
+  `--camera` may be left out. `tools/setup.sh` calls it after `uv sync`.
+- `--no-download` ends a start at once when a weight file is missing and names it. It is a read-only parameter.
+- `weights.py` is the one list of the weight files. `model.CHECKPOINTS` moved there and gained the file sizes.
+- A download goes to `<name>.part` under the lock `weights/.download.lock` and gets its final name after the check.
+
 ## 0.2.0 (2026-11-13)
 
 Every name in code, on the wire and on disk is `xblick` now. Only the prose name of the project stays Durchblick.

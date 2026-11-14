@@ -3,7 +3,7 @@ head reads from them (Meta's Something-Something v2 head by default).
 
     xblick-vjepa2 --camera test/camera [--color <camera>/color] [--node vjepa2] \\
                       [--frames 16] [--fps 8] [--checkpoint ssv2 | <directory>] [--top 5] [--no-labels] \\
-                      [--local shm|cuda]
+                      [--local shm|cuda] [--no-download]
                       [--connect ...] [--listen ...] [--config FILE]   (default: the PC's Zenoh router)
 
 Every colour frame becomes the model's input when it comes (the centre 256 x 256 of the frame scaled to a short side
@@ -22,6 +22,10 @@ still becomes an input), it publishes, stamped as the clip's newest frame and in
 
 Clips per second, the time from the newest frame to the results and how many frames could not make a clip (a gap in
 the stream, or not yet a clip's time since the start) go to ``<camera>/diagnostics`` (status ``vjepa2``) once a second.
+
+Weights (weights.py): a missing checkpoint file is downloaded at the start, before the model loads; --no-download
+ends the node instead. ``xblick-vjepa2 --download-only [--checkpoint ssv2]`` only downloads and checks them (no
+camera, no Zenoh, no GPU), for preparation scripts.
 """
 
 from __future__ import annotations
@@ -37,6 +41,7 @@ from xblick.camera import check_local
 from xblick.history import FrameHistory
 from xblick.session import add_arguments, open_from_args
 
+from . import weights
 from .clip import Clip
 
 KEEP_FRAMES = 30  # frames kept until made inputs: a second at 30 frames/s while the encoder works
@@ -60,24 +65,27 @@ def main(argv=None) -> int:
                              "on 16")
     parser.add_argument("--fps", type=float, default=8.0, help="frames per second of the clip (16 at 8: 2 s)")
     parser.add_argument("--checkpoint", default="ssv2",
-                        help="a VJEPA2ForVideoClassification: ssv2 (Meta's Something-Something v2 head, in weights/ "
-                             "from tools/setup.sh) or a directory with its config.json and model.safetensors")
+                        help="a VJEPA2ForVideoClassification: ssv2 (Meta's Something-Something v2 head, in weights/, "
+                             "downloaded at the first start) or a directory with its config.json and model.safetensors")
     parser.add_argument("--top", type=int, default=5, help="classes per Classification")
     parser.add_argument("--no-labels", action="store_true", help="only the tokens, no head")
     parser.add_argument("--device", default="cuda")
+    weights.add_arguments(parser)  # --download-only (a mode of the command line), --no-download
     add_arguments(parser)  # --connect, --listen, --config; default: the PC's Zenoh router
     # --max-hz: clips a second (the input takes every frame); every clip by default
     # --local: auto (the CUDA ring on this GPU, else shared memory), shm or cuda
     node.add_arguments(parser, local=("auto", "shm", "cuda"))
     node.Parameters.add_arguments(parser)  # --param NAME:=VALUE, --params-file, --dump-params, --params-read-only
-    args = parser.parse_args(argv)
+    args = weights.parse_args(parser, argv)  # --download-only: --camera not required
+    if args.download_only:
+        return weights.download_only(weights.needed(args.checkpoint))
     mps.check()  # with CUDA_MPS_PIPE_DIRECTORY (MPS meant) its daemon has to run: else stop here
     # the options as parameters (the terminal interface shows them): read-only, but top (classes per Classification)
     session = open_from_args(args)
     params = node.Parameters(session, args.node, topics.check_name(args.camera))
     params.configure(args)
     params.declare_options(parser, args, live={"top": {"range": (1, 400, 1), "unit": "classes"}},
-                           leave_out=("camera", "node"))
+                           leave_out=("camera", "node", "download_only"))
     params.check_overrides()
     if args.frames < 2 or args.frames % 2:
         parser.error("--frames: an even number, at least 2")
@@ -87,6 +95,12 @@ def main(argv=None) -> int:
     color_base = args.color or f"{camera}/color"
 
     node.start("xblick-vjepa2", max_hz=args.max_hz, local=args.local)
+    try:
+        weights.ensure(weights.needed(args.checkpoint), download=not args.no_download)
+    except weights.WeightsError as error:
+        params.close()
+        session.close()
+        return weights.fail(error)
 
     import torch  # noqa: PLC0415 - with the model, after the arguments are checked
 

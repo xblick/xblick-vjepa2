@@ -49,7 +49,8 @@ Model licences:
 | Model code, from the `transformers` package | Apache 2.0. It is a dependency. |
 | Checkpoint `facebook/vjepa2-vitl-fpc16-256-ssv2` | MIT, as its Hugging Face model card states. It is a download. |
 
-`tools/setup.sh` downloads the checkpoint. This repository contains no copy of the code or the checkpoint.
+The node downloads the checkpoint and prints these terms first. This repository contains no copy of the code or the
+checkpoint.
 
 ## Install
 
@@ -58,8 +59,19 @@ tools/setup.sh
 ```
 
 The script creates `.venv` exactly as `uv.lock` states, with PyTorch for CUDA 13, transformers and Durchblick from
-source. It downloads the SSv2 checkpoint from Hugging Face at a fixed revision into `weights/ssv2`. It downloads
-only what is missing.
+source. Then it runs `xblick-vjepa2 --download-only`, which downloads the SSv2 checkpoint from Hugging Face at a
+fixed revision into `weights/ssv2`. It downloads only what is missing.
+
+The node itself also downloads a missing checkpoint at its start, before it loads the model. It prints the model's
+terms, the files and their size first. A preparation script downloads without a start:
+
+```bash
+.venv/bin/xblick-vjepa2 --download-only
+```
+
+`--download-only` needs no camera, no Zenoh router and no GPU, and it exits with 0 when the weights are complete. A
+machine that must never start a download on its own, such as a robot, starts the node with `--no-download`. The
+node then ends at once when a file is missing, and it names the file.
 
 ## Run
 
@@ -96,10 +108,12 @@ that you saved with `save_pretrained`.
 | `--color TOPIC` | `<camera>/color` | the colour stream |
 | `--node NAME` | `vjepa2` | the node's part of the topics |
 | `--device` | `cuda` | the CUDA device |
+| `--no-download` | off | end at once when a weight file is missing. The node downloads nothing. |
+| `--download-only` | off | download the missing weights, check them and end. `--camera` may be left out. |
 
 [How the node works](docs/design.md) explains the options in detail.
 
-Every option is also a parameter of the node `<camera>/vjepa2`, which Durchblick's terminal interface (`xblick`, tab Parameters) and `xblick param` show. `top` changes while the node runs. The other options apply at the next start, where `--param NAME:=VALUE` or `--params-file FILE` set them.
+Every option is also a parameter of the node `<camera>/vjepa2`, which Durchblick's terminal interface (`xblick`, tab Parameters) and `xblick param` show. `top` changes while the node runs. The other options apply at the next start, where `--param NAME:=VALUE` or `--params-file FILE` set them. `--download-only` is a mode of the command line and has no parameter.
 
 ## Why it is fast
 
@@ -123,6 +137,8 @@ The encoder needs 17 ms per clip of 16 frames on an RTX PRO 6000, and the head n
   our choice.
 - The node crops the centre of the image. The model does not see the sides of a wide image.
 - A gap in the stream gives no clip. The diagnostics count such frames.
+- We tested the download against a local server, and we fetched `config.json` from Hugging Face with it. We have
+  not downloaded the 1.5 GB `model.safetensors` through the node.
 
 ## Documentation
 

@@ -85,9 +85,9 @@ The README lists all options. Four of them need an explanation.
 **`--frames` and `--fps`.** `--frames` must be even and at least 2, because two frames form one time step of the
 tokens. The node prints a note when the head was trained on another number of frames.
 
-**`--checkpoint`.** The value is a name from `model.CHECKPOINTS` or a directory. `ssv2` is the only name, and
-`tools/setup.sh` stores it in `weights/ssv2`. A directory must contain `config.json` and `model.safetensors` of a
-`VJEPA2ForVideoClassification`.
+**`--checkpoint`.** The value is a name from `weights.CHECKPOINTS` or a directory. `ssv2` is the only name, and
+the node downloads it into `weights/ssv2` ("Weights" below). A directory must contain `config.json` and
+`model.safetensors` of a `VJEPA2ForVideoClassification`. The node downloads nothing for a directory.
 
 **`--max-hz`.** This option limits the clips per second. The node encodes a clip when the stamp of its newest frame
 lies in a later period of `1/max-hz` than the last encoded clip. The node still prepares every frame, because a
@@ -101,6 +101,33 @@ ring. The start log and every report name the transport of the stream.
 
 The node also has Durchblick's session options `--connect`, `--listen`, `--zenoh-mode` and `--config`. Without
 them it connects to the Zenoh router of the PC.
+
+## Weights
+
+`weights.py` lists the files that the node reads. `CHECKPOINTS` names the Hugging Face repository, the fixed
+revision and the size of each file. The node and `tools/setup.sh` use this one list.
+
+At its start, before it loads the model, the node checks that every file exists. When all files exist, the node
+opens no network connection and writes no file, so it starts offline. When a file is missing, the node takes the
+lock `weights/.download.lock`. It prints the model's terms, the files and their size, and it downloads each file.
+The node writes a file as `<name>.part` in the same directory and renames it after the check. A file therefore has
+its final name only when it is complete. A second node that starts at the same time waits for the lock. It then
+finds the files and does not download them again.
+
+The check compares the length of the download with the length that the server announced. The fixed revision
+determines the content. The progress is a line that updates in place on a terminal. In a log file it is one line
+per tenth of the file.
+
+A failure ends the node with one line that says what to do. Ctrl-C or SIGTERM during a download end the node at
+once with the exit code 130 or 143. The node then removes the `.part` file.
+
+`--download-only` downloads and checks the files, then ends. It needs no camera, no Zenoh router and no GPU.
+`weights.parse_args` lifts the requirement of `--camera` when the command line contains `--download-only`.
+`--no-download` ends the node when a file is missing and names the file. It is a read-only parameter like every
+other start option. `--download-only` is a mode of the command line and has no parameter.
+
+The download sends `HF_TOKEN`, or the token of `hf auth login`, to Hugging Face only. `HF_ENDPOINT` changes the
+server, and `HF_HUB_OFFLINE=1` prevents the download.
 
 ## Use from Python
 
@@ -121,6 +148,7 @@ You can use the model without Durchblick (`model.py`).
 | File | Needs | What it checks |
 | --- | --- | --- |
 | `tests/test_clip.py` | CPU | which frames form a clip at camera rates above and below the rate of the clip, gaps, the start, a stream that starts over |
+| `tests/test_weights.py` | CPU, a local HTTP server | the list of files, no network use when all files exist, a download through the Hugging Face path with its redirect, the check, a wrong checksum, Ctrl-C and SIGTERM, two processes at once, the progress in a log file, `--download-only` and `--no-download` |
 | `tests/test_model.py` | a CUDA device and `weights/ssv2` | the inputs equal those of transformers' `VJEPA2VideoProcessor` for four frame sizes. The tokens have the expected shape. The probabilities equal those of transformers' `VJEPA2ForVideoClassification` on the same inputs. |
 
 torchvision is a development dependency only. The video processor of transformers needs it in the tests.

@@ -3,7 +3,7 @@
 xblick-vjepa2: Meta's V-JEPA 2 ViT-L video encoder as a Durchblick node. Publishes the encoder's tokens for the
 newest clip of a colour stream (the main output: heads of our own read them) and the top classes of the
 Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassification`), a dependency. Version
-0.2.0, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
+0.2.1, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
 `README.md` (topics, options, limits), `docs/design.md`, `docs/performance.md`. Transport-wide traps
 (Zenoh sessions, CUDA rings, looped playback, hanging tests) are in the core's `AGENTS.md`
 (github.com/xblick/xblick). Style of all documentation: the core's `docs/project/writing-docs.md`.
@@ -11,15 +11,18 @@ Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassif
 ## Commands
 
 ```bash
-tools/setup.sh                                     # uv sync --frozen, SSv2 checkpoint (1.4 GB) into weights/ssv2
-.venv/bin/python -m pytest -q                      # 11 tests; test_model.py needs a CUDA device and weights/ssv2
+tools/setup.sh                                     # uv sync --frozen, then xblick-vjepa2 --download-only
+.venv/bin/python -m pytest -q                      # 32 tests; test_model.py needs a CUDA device and weights/ssv2
 .venv/bin/python -m pytest -q tests/test_clip.py   # CPU only: which frames make a clip
+.venv/bin/python -m pytest -q tests/test_weights.py  # CPU only, 8 s: downloads from a local HTTP server
+.venv/bin/xblick-vjepa2 --download-only            # SSv2 checkpoint (1.5 GB) into weights/ssv2 if missing, then exit 0
 .venv/bin/ruff check src tests                     # lint; 120 columns, rules in pyproject.toml
 .venv/bin/xblick-vjepa2 --camera test/camera   # needs zenohd on the PC
 ```
 
 - Console script: `xblick-vjepa2`. `--no-labels`: tokens only. `--checkpoint DIR`: a head of our own.
-- `tools/setup.sh` needs uv (`UV` names it) and git. It downloads only what is missing.
+- `tools/setup.sh` needs uv (`UV` names it) and git. It downloads only what is missing (`--download-only`).
+- `--no-download`: a start with a missing file ends with one line (exit 1). Excludes `--download-only`.
 - Durations: not recorded.
 - torchvision is a dev dependency only (transformers' video processor in the tests).
 - Without a camera: a simulation that publishes a camera, or `xblick play <recording.mcap> --loop`.
@@ -31,8 +34,12 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 - Match transformers exactly. `model.prepare` reimplements `VJEPA2VideoProcessor` on the GPU. `tests/test_model.py`
   checks inputs for four frame sizes and the probabilities against `VJEPA2ForVideoClassification`. Keep those tests
   green after any change to the preprocessing or the model call.
-- Work offline. Checkpoints come from `model.CHECKPOINTS` (repository, fixed revision) through `tools/setup.sh` into
-  `weights/<name>`. `--checkpoint` takes such a name or a directory saved with `save_pretrained`.
+- Weights: `weights.py` is the one list (`CHECKPOINTS`: repository, fixed revision, file sizes; `model.py` imports
+  it). `weights.ensure` runs at the start before the model loads; `--download-only` runs it alone. All files there:
+  no network, no file written (the nodes start offline; `test_weights.py` checks it). Keep it so.
+- Downloads: `<name>.part` in the target directory, renamed after the check, under the lock
+  `weights/.download.lock`. Never let a partial or unchecked file get its final name. No fallbacks.
+- `--checkpoint` takes a name of `CHECKPOINTS` or a directory saved with `save_pretrained` (nothing downloaded).
 - Do not reorder the tokens for the transport.
 - Durchblick pin: `xblick>=0.5.0,<0.6` (the core's Python package).
 - 120 columns. Docstrings say what, comments say why.
@@ -56,6 +63,10 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 | CUDA ring in tests | The process that created a CUDA ring cannot open it. | Tests read it from a `spawn`ed child. |
 | `--frames` | Must be even and at least 2. A note is printed when the head was trained on another count. | |
 | MPS check | With `CUDA_MPS_PIPE_DIRECTORY` set, `mps.check()` stops the node when the daemon does not answer. | Start MPS first or unset the variable. |
+| Required options and `--download-only` | `--camera` is required for a start only. `weights.parse_args` lifts `required` when the token `--download-only` is spelled out (an abbreviation is not seen). | Spell it out. |
+| `download_only` as a parameter | `declare_options` would declare it. | It is in `leave_out`. `no_download` is a read-only parameter. |
+| Wrong SHA-256 after a download | The `.part` file stays for a look, the error names it. | Remove it, start again. |
+| Interrupt during a download | Ctrl-C: exit 130, SIGTERM: exit 143 (`weights._stoppable` overrides `node.start`'s handler while downloading). The `.part` file is removed. | |
 | Zenoh sessions (core) | A session with only `--connect` does not listen, and the router does not route between such sessions. | Start nodes without endpoints. They find the PC's router. |
 
 ## Layout
@@ -63,11 +74,12 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 | Path | Content |
 | --- | --- |
 | `src/xblick_vjepa2/model.py` | `VJepa2`: `prepare` (per frame), `encode` (per clip), `classify`; `CHECKPOINTS` |
+| `src/xblick_vjepa2/weights.py` | `CHECKPOINTS`, `needed`, `ensure`, `--download-only`/`--no-download`; from `Weight` on the same in every node |
 | `src/xblick_vjepa2/clip.py` | `pick`/`Clip`: which frames make the clip, by stamp |
 | `src/xblick_vjepa2/node.py` | the node: subscription, clip, publishing tokens/actions, diagnostics |
-| `weights/<name>/` | `config.json`, `model.safetensors` (`tools/setup.sh`). Not in git. |
-| `tests/` | `test_clip.py` (CPU), `test_model.py` (GPU) |
-| `tools/setup.sh` | venv and checkpoint |
+| `weights/<name>/` | `config.json`, `model.safetensors` (downloaded by the node), `.download.lock`. Not in git. |
+| `tests/` | `test_clip.py`, `test_weights.py` (CPU), `test_model.py` (GPU) |
+| `tools/setup.sh` | venv, then `xblick-vjepa2 --download-only` |
 
 ## Defaults
 
@@ -78,9 +90,9 @@ tools/setup.sh                                     # uv sync --frozen, SSv2 chec
 | Actions | `<camera>/vjepa2/actions`, `vision_msgs/Classification`, `--top` 5 |
 | Diagnostics | `<camera>/diagnostics`, status `vjepa2`, once per second |
 | Clip | `--frames` 16, `--fps` 8 (2 s), picked by stamp |
-| `--checkpoint` | `ssv2` (`facebook/vjepa2-vitl-fpc16-256-ssv2`, fixed revision in `model.CHECKPOINTS`) |
+| `--checkpoint` | `ssv2` (`facebook/vjepa2-vitl-fpc16-256-ssv2`, fixed revision in `weights.CHECKPOINTS`) |
 | `--max-hz` | none (every clip) |
 | `--local` | `auto` (`shm`, `cuda`) |
 | `--device` | `cuda` |
 | `KEEP_FRAMES` | 30 |
-| Environment | `UV` (setup), `CUDA_MPS_PIPE_DIRECTORY` (MPS) |
+| Environment | `UV` (setup), `CUDA_MPS_PIPE_DIRECTORY` (MPS), `HF_TOKEN`, `HF_ENDPOINT`, `HF_HUB_OFFLINE` (download) |

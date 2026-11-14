@@ -21,12 +21,8 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-REPO = Path(__file__).resolve().parents[2]
-WEIGHTS = REPO / "weights"
-CHECKPOINTS = {  # name -> (Hugging Face repository, revision): tools/setup.sh downloads them into weights/<name>
-    "ssv2": ("facebook/vjepa2-vitl-fpc16-256-ssv2", "4aa02df83918538fc21cfaf576382fa20e489a80"),
-}
-CHECKPOINT_FILES = ("config.json", "model.safetensors")
+from .weights import CHECKPOINT_FILES, CHECKPOINTS, WEIGHTS  # noqa: F401 - the checkpoints' one list (weights.py)
+
 IMAGENET_MEAN = (0.485, 0.456, 0.406)  # transformers' IMAGENET_DEFAULT_MEAN and _STD, as VJEPA2VideoProcessor uses
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
@@ -36,7 +32,7 @@ def checkpoint_dir(name: str) -> Path:
     path = WEIGHTS / name if name in CHECKPOINTS else Path(name)
     missing = [f for f in CHECKPOINT_FILES if not (path / f).is_file()]
     if missing:
-        hint = " (tools/setup.sh downloads it)" if name in CHECKPOINTS else ""
+        hint = " (xblick-vjepa2 downloads it at its start, or with --download-only)" if name in CHECKPOINTS else ""
         raise FileNotFoundError(f"checkpoint {name}: {', '.join(missing)} not in {path}{hint}")
     return path
 
