@@ -1,5 +1,5 @@
 # The tests that need neither a GPU nor model weights, and the check for internal references.
-# Tests that need a CUDA device or weights/ skip themselves here.
+# Tests that need a CUDA device or the weights in the node's cache directory skip themselves here.
 name: tests
 
 on:

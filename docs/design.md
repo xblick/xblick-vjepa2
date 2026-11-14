@@ -86,7 +86,7 @@ The README lists all options. Four of them need an explanation.
 tokens. The node prints a note when the head was trained on another number of frames.
 
 **`--checkpoint`.** The value is a name from `weights.CHECKPOINTS` or a directory. `ssv2` is the only name, and
-the node downloads it into `weights/ssv2` ("Weights" below). A directory must contain `config.json` and
+the node downloads it into `~/.cache/xblick/vjepa2/ssv2` ("Weights" below). A directory must contain `config.json` and
 `model.safetensors` of a `VJEPA2ForVideoClassification`. The node downloads nothing for a directory.
 
 **`--max-hz`.** This option limits the clips per second. The node encodes a clip when the stamp of its newest frame
@@ -108,11 +108,13 @@ them it connects to the Zenoh router of the PC.
 revision, and the size and SHA-256 of each file. The SHA-256 of `model.safetensors` is the one Hugging Face states for
 the file at that revision (`lfs.oid`). That of `config.json` is the hash of the file at that revision. Both agree
 with copies that we downloaded earlier. The node and `tools/setup.sh` use this one list. The download itself (lock, `.part` files, checks, progress) is the core's `xblick.weights`:
-`weights.STORE` is the node's `xblick.weights.Store`.
+`weights.STORE` is the node's `xblick.weights.Store`. Its root is the node's cache directory, `~/.cache/xblick/vjepa2/`
+(`XBLICK_HOME`, `XDG_CACHE_HOME`, `--weights-dir`). The checkout's `weights/` is the former place: the node does not
+read weights there, and it prints the command that moves them.
 
 At its start, before it loads the model, the node checks that every file exists. When all files exist, the node
 opens no network connection and writes no file, so it starts offline. When a file is missing, the node takes the
-lock `weights/.download.lock`. It prints the model's terms, the files and their size, and it downloads each file.
+lock `~/.cache/xblick/vjepa2/.download.lock`. It prints the model's terms, the files and their size, and it downloads each file.
 The node writes a file as `<name>.part` in the same directory and renames it after the check. A file therefore has
 its final name only when it is complete. A second node that starts at the same time waits for the lock. It then
 finds the files and does not download them again.
@@ -153,6 +155,6 @@ You can use the model without Durchblick (`model.py`).
 | --- | --- | --- |
 | `tests/test_clip.py` | CPU | which frames form a clip at camera rates above and below the rate of the clip, gaps, the start, a stream that starts over |
 | `tests/test_weights.py` | CPU, a local HTTP server | the files, their sizes and SHA-256, a changed `model.safetensors` refused, the node's `STORE`, `--download-only` and `--no-download`, a start that stops after its weights step without a GPU. The download itself: the core's tests |
-| `tests/test_model.py` | a CUDA device and `weights/ssv2` | the inputs equal those of transformers' `VJEPA2VideoProcessor` for four frame sizes. The tokens have the expected shape. The probabilities equal those of transformers' `VJEPA2ForVideoClassification` on the same inputs. |
+| `tests/test_model.py` | a CUDA device and `~/.cache/xblick/vjepa2/ssv2` | the inputs equal those of transformers' `VJEPA2VideoProcessor` for four frame sizes. The tokens have the expected shape. The probabilities equal those of transformers' `VJEPA2ForVideoClassification` on the same inputs. |
 
 torchvision is a development dependency only. The video processor of transformers needs it in the tests.

@@ -3,7 +3,7 @@
 xblick-vjepa2: Meta's V-JEPA 2 ViT-L video encoder as a Durchblick node. Publishes the encoder's tokens for the
 newest clip of a colour stream (the main output: heads of our own read them) and the top classes of the
 Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassification`), a dependency. Version
-0.2.2, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
+0.2.3, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
 `README.md` (topics, options, limits), `docs/design.md`, `docs/performance.md`. Transport-wide traps
 (Zenoh sessions, CUDA rings, looped playback, hanging tests) are in the core's `AGENTS.md`
 (github.com/xblick/xblick). Style of all documentation: the core's `docs/project/writing-docs.md`.
@@ -12,10 +12,10 @@ Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassif
 
 ```bash
 tools/setup.sh                                     # uv sync --frozen, then xblick-vjepa2 --download-only
-.venv/bin/python -m pytest -q                      # 23 tests; test_model.py needs a CUDA device and weights/ssv2
+.venv/bin/python -m pytest -q                      # test_model.py needs a CUDA device and ~/.cache/xblick/vjepa2/ssv2
 .venv/bin/python -m pytest -q tests/test_clip.py   # CPU only: which frames make a clip
 .venv/bin/python -m pytest -q tests/test_weights.py  # CPU, 4 s: the node's files and its start up to the weights (the download: the core's tests)
-.venv/bin/xblick-vjepa2 --download-only            # SSv2 checkpoint (1.5 GB) into weights/ssv2 if missing, then exit 0
+.venv/bin/xblick-vjepa2 --download-only            # SSv2 checkpoint (1.5 GB) into ~/.cache/xblick/vjepa2/ssv2 if missing
 .venv/bin/ruff check src tests                     # lint; 120 columns, rules in pyproject.toml
 .venv/bin/xblick-vjepa2 --camera test/camera   # needs zenohd on the PC
 ```
@@ -31,6 +31,11 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
 
 ## Rules
 
+- Files: the weights are in the node's cache directory (`xblick.paths.cache_dir("vjepa2")`, `~/.cache/xblick/vjepa2`), never in
+  the checkout. `weights.STORE = Store(PROG, node=NODE, ..., former=[FORMER])`, `Weight` paths relative to its root;
+  `store = weights.store_for(parser, args)` (`--weights-dir`) for `download_only`, `ensure` and `fail`, with
+  `options=weights.options(args)`; model code takes its paths from `store.root`. `FORMER` (the checkout's `weights/`) is never
+  read: the store prints the command that moves it. The core's `docs/reference/files.md` has the rule.
 - Match transformers exactly. `model.prepare` reimplements `VJEPA2VideoProcessor` on the GPU. `tests/test_model.py`
   checks inputs for four frame sizes and the probabilities against `VJEPA2ForVideoClassification`. Keep those tests
   green after any change to the preprocessing or the model call.
@@ -38,10 +43,10 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
   it). `weights.STORE.ensure` runs at the start before the model loads; `--download-only` runs it alone. All files there:
   no network, no file written (the nodes start offline; `test_weights.py` checks it). Keep it so.
 - Downloads: `<name>.part` in the target directory, renamed after the check, under the lock
-  `weights/.download.lock`. Never let a partial or unchecked file get its final name. No fallbacks.
+  `~/.cache/xblick/vjepa2/.download.lock`. Never let a partial or unchecked file get its final name. No fallbacks.
 - `--checkpoint` takes a name of `CHECKPOINTS` or a directory saved with `save_pretrained` (nothing downloaded).
 - Do not reorder the tokens for the transport.
-- Durchblick pin: `xblick>=0.5.3,<0.6` (the core's Python package).
+- Durchblick pin: `xblick>=0.5.5,<0.6` (the core's Python package).
 - 120 columns. Docstrings say what, comments say why.
 - Update `README.md` and `docs/` with every change of behaviour.
 - Run GPU tests and live checks in the background with `timeout`. Stop them by PID.
@@ -77,7 +82,7 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
 | `src/xblick_vjepa2/weights.py` | `CHECKPOINTS`, `needed`, `STORE` (the core's `xblick.weights.Store`: the download, `--download-only`/`--no-download`) |
 | `src/xblick_vjepa2/clip.py` | `pick`/`Clip`: which frames make the clip, by stamp |
 | `src/xblick_vjepa2/node.py` | the node: subscription, clip, publishing tokens/actions, diagnostics |
-| `weights/<name>/` | `config.json`, `model.safetensors` (downloaded by the node), `.download.lock`. Not in git. |
+| `~/.cache/xblick/vjepa2/<name>/` | `config.json`, `model.safetensors` (downloaded by the node), `.download.lock`: the node's cache directory (`XBLICK_HOME`, `--weights-dir`). The checkout's `weights/` is the former place (not read; the node prints the `mv`). |
 | `tests/` | `test_clip.py`, `test_weights.py` (CPU), `test_model.py` (GPU) |
 | `tools/setup.sh` | venv, then `xblick-vjepa2 --download-only` |
 
@@ -95,4 +100,4 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
 | `--local` | `auto` (`shm`, `cuda`) |
 | `--device` | `cuda` |
 | `KEEP_FRAMES` | 30 |
-| Environment | `UV` (setup), `CUDA_MPS_PIPE_DIRECTORY` (MPS), `HF_TOKEN`, `HF_ENDPOINT`, `HF_HUB_OFFLINE` (download) |
+| Environment | `UV` (setup), `CUDA_MPS_PIPE_DIRECTORY` (MPS), `HF_TOKEN`, `HF_ENDPOINT`, `HF_HUB_OFFLINE` (download), `XBLICK_HOME`, `XDG_CACHE_HOME` (cache directory) |

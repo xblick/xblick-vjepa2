@@ -23,9 +23,9 @@ still becomes an input), it publishes, stamped as the clip's newest frame and in
 Clips per second, the time from the newest frame to the results and how many frames could not make a clip (a gap in
 the stream, or not yet a clip's time since the start) go to ``<camera>/diagnostics`` (status ``vjepa2``) once a second.
 
-Weights (weights.py): a missing checkpoint file is downloaded at the start, before the model loads; --no-download
-ends the node instead. ``xblick-vjepa2 --download-only [--checkpoint ssv2]`` only downloads and checks them (no
-camera, no Zenoh, no GPU), for preparation scripts.
+Weights (weights.py; in the node's cache directory ~/.cache/xblick/vjepa2, or --weights-dir): a missing checkpoint file
+is downloaded at the start, before the model loads; --no-download ends the node instead. ``xblick-vjepa2 --download-only
+[--checkpoint ssv2]`` only downloads and checks them (no camera, no Zenoh, no GPU), for preparation scripts.
 """
 
 from __future__ import annotations
@@ -66,8 +66,9 @@ def main(argv=None) -> int:
                              "on 16")
     parser.add_argument("--fps", type=float, default=8.0, help="frames per second of the clip (16 at 8: 2 s)")
     parser.add_argument("--checkpoint", default="ssv2",
-                        help="a VJEPA2ForVideoClassification: ssv2 (Meta's Something-Something v2 head, in weights/, "
-                             "downloaded at the first start) or a directory with its config.json and model.safetensors")
+                        help="a VJEPA2ForVideoClassification: ssv2 (Meta's Something-Something v2 head, in the node's "
+                             "cache directory, downloaded at the first start) or a directory with its config.json and "
+                             "model.safetensors")
     parser.add_argument("--top", type=int, default=5, help="classes per Classification")
     parser.add_argument("--no-labels", action="store_true", help="only the tokens, no head")
     parser.add_argument("--device", default="cuda")
@@ -79,7 +80,8 @@ def main(argv=None) -> int:
     node.Parameters.add_arguments(parser)  # --param NAME:=VALUE, --params-file, --dump-params, --params-read-only
     args = xblick_weights.parse_args(parser, argv)  # --download-only: --camera not required
     if args.download_only:
-        return weights.STORE.download_only(weights.needed(args.checkpoint))
+        return weights.store_for(parser, args).download_only(weights.needed(args.checkpoint),
+                                                             options=weights.options(args))
     mps.check()  # with CUDA_MPS_PIPE_DIRECTORY (MPS meant) its daemon has to run: else stop here
     # the options as parameters (the terminal interface shows them): read-only, but top (classes per Classification)
     session = open_from_args(args)
@@ -94,21 +96,22 @@ def main(argv=None) -> int:
         parser.error("--fps: positive; --top: at least 1")
     camera = topics.check_name(args.camera)
     color_base = args.color or f"{camera}/color"
+    store = weights.store_for(parser, args)  # --weights-dir, also given as a parameter
 
     node.start("xblick-vjepa2", max_hz=args.max_hz, local=args.local)
     try:
-        weights.STORE.ensure(weights.needed(args.checkpoint), download=not args.no_download)
+        store.ensure(weights.needed(args.checkpoint), download=not args.no_download, options=weights.options(args))
     except xblick_weights.WeightsError as error:
         params.close()
         session.close()
-        return weights.STORE.fail(error)
+        return store.fail(error)
 
     import torch  # noqa: PLC0415 - with the model, after the arguments are checked
 
     from .model import VJepa2  # noqa: PLC0415 - loads transformers
 
     device = torch.device(args.device)
-    model = VJepa2(args.checkpoint, device, labels=not args.no_labels)
+    model = VJepa2(args.checkpoint, store.root, device, labels=not args.no_labels)
     if model.labels and args.frames != model.frames_trained:
         print(f"xblick-vjepa2: the head was trained on clips of {model.frames_trained} frames, these have "
               f"{args.frames}", flush=True)

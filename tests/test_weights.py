@@ -13,17 +13,21 @@ import io
 import os
 import signal
 import socket
+import subprocess
+import sys
 import threading
 from pathlib import Path
 
 import pytest
+from xblick import paths as xblick_paths
 from xblick import weights as xblick_weights
 from xblick.session import open_session
 
 from xblick_vjepa2 import node, weights
 
 TERMS_LINE = "V-JEPA 2 is the work of Meta"  # the first line of weights.TERMS
-NETWORK = True  # the weights come from the network
+OPTIONS = ["--checkpoint", "ssv2"]  # the options of a default start that select the weights
+START_NEEDS_OPTIONS = True  # a start without options is an argument error
 
 WITHOUT_SHA256 = ()  # files whose source states no SHA-256
 
@@ -51,8 +55,7 @@ def stand_in(home, server, monkeypatch):
 
 def test_the_files_are_the_ssv2_checkpoint_at_its_revision():
     ws = weights.needed("ssv2")
-    assert [w.path for w in ws] == [weights.WEIGHTS / "ssv2" / "config.json",
-                                    weights.WEIGHTS / "ssv2" / "model.safetensors"]
+    assert [w.path for w in ws] == [Path("ssv2/config.json"), Path("ssv2/model.safetensors")]  # below the root
     for w in ws:
         assert w.source.repo == "facebook/vjepa2-vitl-fpc16-256-ssv2"
         assert w.source.revision == "4aa02df83918538fc21cfaf576382fa20e489a80" and not w.source.gated
@@ -77,6 +80,7 @@ def test_a_changed_checkpoint_file_is_refused(home, server, monkeypatch):
 def test_download_only_with_a_directory_downloads_nothing(home, no_network, capsys):
     assert node.main(["--download-only", "--checkpoint", "/some/head/of/ours"]) == 0
     assert "no weights to download" in capsys.readouterr().out and not home.exists()
+
 
 
 # ------------------------------------------------------------------------ the same in every node's test_weights.py
@@ -149,24 +153,30 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket, "getaddrinfo", refuse)
 
 
-def use_store(monkeypatch, required=()):
-    """The node's STORE as it is, with other required paths (code from the setup)."""
+def use_store(monkeypatch, required=None, former=None):
+    """The node's STORE as it is, with other required paths (code from the setup) or former places."""
     store = weights.STORE
-    monkeypatch.setattr(weights, "STORE", xblick_weights.Store(store.prog, store.root, store.terms, required,
-                                                               repo=store.repo))
+    monkeypatch.setattr(weights, "STORE", xblick_weights.Store(
+        store.prog, store.root, store.terms, store.required if required is None else required, repo=store.repo,
+        former=store.former if former is None else former))
 
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    """weights.WEIGHTS and the STORE's root (the lock goes there) in tmp_path; no code from the setup required
-    (stand_in may); a token that is no login of this PC."""
+    """The STORE's root (the lock goes there) in tmp_path, no former place, no code from the setup required (stand_in
+    may); XBLICK_HOME in tmp_path too, so that nothing reaches this PC's cache; a token that is no login of this PC."""
     root = tmp_path / "weights"
-    monkeypatch.setattr(weights, "WEIGHTS", root)
+    monkeypatch.setenv("XBLICK_HOME", str(tmp_path / "xblick-home"))
     monkeypatch.setattr(weights, "STORE", xblick_weights.Store(weights.PROG, root, weights.TERMS, (),
                                                                repo=weights.REPO))
     monkeypatch.setenv("HF_TOKEN", "secret")
     monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
     return root
+
+
+def command(*words) -> str:
+    """The download command that the node's lines name."""
+    return " ".join([weights.PROG, "--download-only", *OPTIONS, *words])
 
 
 def place(files: dict[Path, bytes]):
@@ -175,11 +185,45 @@ def place(files: dict[Path, bytes]):
         path.write_bytes(data)
 
 
-def test_the_store_is_the_nodes():
+def test_the_store_is_the_nodes_cache_directory_with_its_former_place():
     store = weights.STORE
-    assert (store.prog, store.root, store.terms, store.required, store.repo) == (
-        weights.PROG, weights.WEIGHTS, weights.TERMS, tuple(weights.REQUIRED), weights.REPO)
-    assert store.prog == node.main.__module__.split(".")[0].replace("_", "-")
+    assert (store.prog, store.node, store.terms, store.required, store.repo) == (
+        weights.PROG, weights.NODE, weights.TERMS, tuple(weights.REQUIRED), weights.REPO)
+    assert store.prog == node.main.__module__.split(".")[0].replace("_", "-") == f"xblick-{weights.NODE}"
+    assert store.root == xblick_paths.cache_dir(weights.NODE) and store.former == (weights.FORMER,)
+    assert all(not w.path.is_absolute() for w in default_weights())  # below the root: they move with it
+
+
+def test_xblick_home_moves_the_cache_directory_and_creates_nothing(tmp_path):
+    env = {**os.environ, "XBLICK_HOME": str(tmp_path)}
+    code = f"from {weights.__name__} import STORE; print(STORE.root)"
+    root = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, check=True)
+    assert root.stdout.strip() == str(tmp_path / "cache" / weights.NODE) and not list(tmp_path.iterdir())
+
+
+def test_weights_dir_is_where_the_weights_go(home, stand_in, tmp_path, capsys):
+    there = tmp_path / "elsewhere"
+    assert node.main(["--download-only", "--weights-dir", str(there)]) == 0
+    assert all((there / path.relative_to(home)).read_bytes() == data for path, data in stand_in.items())
+    assert not home.exists() and str(there) in capsys.readouterr().out
+    with pytest.raises(SystemExit) as exit_:
+        node.main(["--download-only", "--weights-dir", "${XBLICK_NO_SUCH_VARIABLE}/w"])
+    assert exit_.value.code == 2 and "--weights-dir" in capsys.readouterr().err
+
+
+def test_the_former_place_is_named_not_used_and_its_command_moves_it(home, stand_in, tmp_path, monkeypatch,
+                                                                      no_network, capsys):
+    old = tmp_path / "checkout" / "weights"
+    place({old / path.relative_to(home): data for path, data in stand_in.items()})
+    use_store(monkeypatch, former=[old])
+    with pytest.raises(xblick_weights.WeightsError, match="--no-download"):
+        weights.STORE.ensure(default_weights(), download=False)
+    lines = capsys.readouterr().out.splitlines()
+    assert "still at the node's former place. They are not used from there." in lines[0]
+    assert lines[1].strip().startswith("mkdir -p ") and f"mv {old} {home}" in lines[1]
+    subprocess.run(["bash", "-c", lines[1]], check=True)  # the command as printed
+    assert weights.STORE.ensure(default_weights(), verify=True) == [] and not old.exists()
+    assert all(path.read_bytes() == data for path, data in stand_in.items())
 
 
 def test_every_file_of_the_node_has_its_exact_size_and_sha256():
@@ -216,9 +260,10 @@ def test_download_only_needs_no_start_options_and_excludes_no_download(capsys):
     with pytest.raises(SystemExit) as exit_:
         node.main(["--download-only", "--no-download"])
     assert exit_.value.code == 2 and "not allowed with" in capsys.readouterr().err
-    with pytest.raises(SystemExit) as exit_:
-        node.main(["--no-download"])  # a start needs its required options
-    assert exit_.value.code == 2 and "required" in capsys.readouterr().err
+    if START_NEEDS_OPTIONS:
+        with pytest.raises(SystemExit) as exit_:
+            node.main(["--no-download"])  # a start needs its required options
+        assert exit_.value.code == 2 and "required" in capsys.readouterr().err
 
 
 class Started(Exception):
@@ -271,11 +316,12 @@ def test_no_download_ends_at_once_naming_the_missing_files(home, server, stand_i
     start, kept = started
     assert node.main([*start, "--no-download"]) == 1
     err = capsys.readouterr().err.strip().splitlines()
-    assert len(err) == 1 and all(path.name in err[0] for path in stand_in) and "--download-only" in err[0]
+    assert len(err) == 1 and all(path.name in err[0] for path in stand_in) and command() in err[0]
     assert server.gets == [] and not any(path.exists() for path in stand_in)
     # a read-only parameter, as every start option; --download-only is a mode of the command line, no parameter
     assert kept[0].descriptor("no_download").read_only and kept[0]["no_download"] is True
     assert "download_only" not in kept[0].names()
+    assert kept[0].descriptor("weights_dir").read_only and kept[0]["weights_dir"] == ""  # --weights-dir: a parameter
 
 
 def test_no_download_with_all_present_starts_as_usual(home, stand_in, started, no_network):

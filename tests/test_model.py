@@ -1,15 +1,18 @@
 """model.py against transformers' own pipeline (VJEPA2VideoProcessor, then VJEPA2ForVideoClassification): the same
-inputs from the same frames, the same tokens' shape and the same class probabilities. Needs a GPU and weights/ssv2
-(tools/setup.sh)."""
+inputs from the same frames, the same tokens' shape and the same class probabilities. Needs a GPU and the checkpoint in
+~/.cache/xblick/vjepa2/ssv2 (tools/setup.sh)."""
 
 import numpy as np
 import pytest
 import torch
 
-from xblick_vjepa2.model import WEIGHTS, VJepa2
+from xblick_vjepa2.model import VJepa2
+from xblick_vjepa2.weights import STORE
+
+WEIGHTS = STORE.root  # the node's cache directory (XBLICK_HOME moves it)
 
 pytestmark = pytest.mark.skipif(not torch.cuda.is_available() or not (WEIGHTS / "ssv2" / "model.safetensors").is_file(),
-                                reason="needs a GPU and weights/ssv2 (tools/setup.sh)")
+                                reason="needs a GPU and the checkpoint (tools/setup.sh)")
 
 
 def frames(n: int, h: int, w: int) -> np.ndarray:
@@ -26,7 +29,7 @@ def frames(n: int, h: int, w: int) -> np.ndarray:
 
 @pytest.fixture(scope="module")
 def model():
-    return VJepa2("ssv2", "cuda")
+    return VJepa2("ssv2", WEIGHTS, "cuda")
 
 
 @pytest.fixture(scope="module")

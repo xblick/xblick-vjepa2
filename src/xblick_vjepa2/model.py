@@ -21,15 +21,15 @@ from pathlib import Path
 import torch
 import torch.nn.functional as F
 
-from .weights import CHECKPOINT_FILES, CHECKPOINTS, WEIGHTS  # noqa: F401 - the checkpoints' one list (weights.py)
+from .weights import CHECKPOINT_FILES, CHECKPOINTS  # the checkpoints' one list (weights.py)
 
 IMAGENET_MEAN = (0.485, 0.456, 0.406)  # transformers' IMAGENET_DEFAULT_MEAN and _STD, as VJEPA2VideoProcessor uses
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 
-def checkpoint_dir(name: str) -> Path:
-    """weights/<name> of a known checkpoint, else ``name`` as a directory of a VJEPA2ForVideoClassification."""
-    path = WEIGHTS / name if name in CHECKPOINTS else Path(name)
+def checkpoint_dir(name: str, root: Path) -> Path:
+    """<root>/<name> of a known checkpoint, else ``name`` as a directory of a VJEPA2ForVideoClassification."""
+    path = Path(root) / name if name in CHECKPOINTS else Path(name)
     missing = [f for f in CHECKPOINT_FILES if not (path / f).is_file()]
     if missing:
         hint = " (xblick-vjepa2 downloads it at its start, or with --download-only)" if name in CHECKPOINTS else ""
@@ -40,10 +40,10 @@ def checkpoint_dir(name: str) -> Path:
 class VJepa2:
     """The encoder and head of a checkpoint, in bfloat16 on ``device``. ``labels``: False leaves the head out."""
 
-    def __init__(self, checkpoint: str = "ssv2", device="cuda", labels: bool = True):
+    def __init__(self, checkpoint: str, root: Path, device="cuda", labels: bool = True):
         from transformers import VJEPA2ForVideoClassification  # noqa: PLC0415 - slow; after the arguments
 
-        model = VJEPA2ForVideoClassification.from_pretrained(checkpoint_dir(checkpoint), dtype=torch.bfloat16,
+        model = VJEPA2ForVideoClassification.from_pretrained(checkpoint_dir(checkpoint, root), dtype=torch.bfloat16,
                                                              attn_implementation="sdpa")
         model.vjepa2.predictor = None  # the pretraining's predictor: not used for features
         self.device = torch.device(device)
