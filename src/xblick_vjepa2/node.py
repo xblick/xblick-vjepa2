@@ -48,6 +48,15 @@ from .clip import Clip
 KEEP_FRAMES = 30  # frames kept until made inputs: a second at 30 frames/s while the encoder works
 
 
+def parse_device(text: str) -> str:
+    """``--device``: cuda (GPU 0) or cuda:N, as ``cuda:N``."""
+    if text == "cuda":
+        return "cuda:0"
+    if text.startswith("cuda:") and text[5:].isdigit():
+        return text
+    raise argparse.ArgumentTypeError(f"{text!r}: cuda (GPU 0) or cuda:N")
+
+
 def clip_due(newest: int, clipped: int, period_ns: int | None) -> bool:
     """Whether the clip ending at stamp ``newest`` is encoded under --max-hz: its stamp in a later 1/max-hz period
     (counted from the epoch, as Durchblick's subscriptions do) than ``clipped``, the last encoded clip's (-1: none
@@ -71,7 +80,8 @@ def main(argv=None) -> int:
                              "model.safetensors")
     parser.add_argument("--top", type=int, default=5, help="classes per Classification")
     parser.add_argument("--no-labels", action="store_true", help="only the tokens, no head")
-    parser.add_argument("--device", default="cuda")
+    parser.add_argument("--device", type=parse_device, default="cuda:0",
+                        help="the GPU: cuda (GPU 0) or cuda:N; a GPU that cannot be used is an error (default: cuda:0)")
     xblick_weights.add_arguments(parser)  # --download-only (a mode of the command line), --no-download
     add_arguments(parser)  # --connect, --listen, --config; default: the PC's Zenoh router
     # --max-hz: clips a second (the input takes every frame); every clip by default
@@ -111,6 +121,13 @@ def main(argv=None) -> int:
     from .model import VJepa2  # noqa: PLC0415 - loads transformers
 
     device = torch.device(args.device)
+    if device.index >= torch.cuda.device_count():  # no CUDA, or not that many GPUs: one line, never another device
+        print(f"xblick-vjepa2: --device {args.device}: no such GPU ({torch.cuda.device_count()} visible)",
+              file=sys.stderr, flush=True)
+        params.close()
+        session.close()
+        return 1
+    torch.cuda.set_device(device)
     model = VJepa2(args.checkpoint, store.root, device, labels=not args.no_labels)
     if model.labels and args.frames != model.frames_trained:
         print(f"xblick-vjepa2: the head was trained on clips of {model.frames_trained} frames, these have "
@@ -122,7 +139,7 @@ def main(argv=None) -> int:
     history = FrameHistory(color, KEEP_FRAMES, wake.set)
     clip = Clip(args.frames, round(1e9 / args.fps))
     tokens_pub = db.CameraPublisher(session, f"{camera}/{args.node}/tokens", encoding="16FC1", frame_id="",
-                                    source="vjepa2", cuda_device=device.index if device.index is not None else 0,
+                                    source="vjepa2", cuda_device=device.index,
                                     codec=None)  # half floats: no compressed form
     actions_pub = (db.DetectionPublisher(session, topics.detections(camera, args.node, "actions"), db.Classification)
                    if model.labels else None)
@@ -131,7 +148,8 @@ def main(argv=None) -> int:
     outputs = "tokens" + (",actions" if actions_pub is not None else "")
     print(f"xblick-vjepa2: {color_base} -> {camera}/{args.node}/{{{outputs}}}: clips of {args.frames} frames at "
           f"{args.fps:g} frames/s ({model.tokens_of(args.frames)} tokens of {model.width})"
-          + (f", {len(model.labels)} classes ({args.checkpoint})" if model.labels else ""), flush=True)
+          + (f", {len(model.labels)} classes ({args.checkpoint})" if model.labels else "")
+          + f"; model on {args.device}", flush=True)
     counts = report.counts
     prepared, encoded = -1, -1  # the newest stamps made inputs, and looked at for a clip
     clipped = -1  # the newest stamp of the last clip encoded (for --max-hz)

@@ -3,7 +3,7 @@
 xblick-vjepa2: Meta's V-JEPA 2 ViT-L video encoder as a Durchblick node. Publishes the encoder's tokens for the
 newest clip of a colour stream (the main output: heads of our own read them) and the top classes of the
 Something-Something v2 head. Model code is transformers' (`VJEPA2ForVideoClassification`), a dependency. Version
-0.2.3, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
+0.2.4, tested against transformers' pipeline and in a simulation, not on a robot. Human documentation:
 `README.md` (topics, options, limits), `docs/design.md`, `docs/performance.md`. Transport-wide traps
 (Zenoh sessions, CUDA rings, looped playback, hanging tests) are in the core's `AGENTS.md`
 (github.com/xblick/xblick). Style of all documentation: the core's `docs/project/writing-docs.md`.

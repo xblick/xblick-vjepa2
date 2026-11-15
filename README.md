@@ -124,7 +124,7 @@ that you saved with `save_pretrained`.
 | `--local` | `auto` | how frames of a camera on this host reach the node: `auto`, `shm` or `cuda` |
 | `--color TOPIC` | `<camera>/color` | the colour stream |
 | `--node NAME` | `vjepa2` | the node's part of the topics |
-| `--device` | `cuda` | the CUDA device |
+| `--device` | `cuda` | the GPU: `cuda` is GPU 0, `cuda:N` is GPU N. A GPU that cannot be used ends the node with one line. |
 | `--no-download` | off | end at once when a weight file is missing. The node downloads nothing. |
 | `--download-only` | off | download the missing weights, check them and end. `--camera` may be left out. |
 | `--weights-dir DIR` | the cache directory | where the weights are and go, in place of `~/.cache/xblick/vjepa2/` |
@@ -176,3 +176,23 @@ one of Hugging Face's transformers. "Requirements" lists the licences.
 
 The code of this repository is under the Apache License 2.0, see [LICENSE](LICENSE). [NOTICE](NOTICE) names the
 copyright holder and the parts of others.
+
+## Citation
+
+This node uses V-JEPA 2 (facebook/vjepa2-vitl-fpc16-256-ssv2 on Hugging Face). If you use it in research, cite their
+work. The entries below are copied from [its
+README](https://huggingface.co/facebook/vjepa2-vitl-fpc16-256-ssv2/blob/4aa02df83918538fc21cfaf576382fa20e489a80/README.md):
+
+```bibtex
+@techreport{assran2025vjepa2,
+  title={V-JEPA~2: Self-Supervised Video Models Enable Understanding, Prediction and Planning},
+  author={Assran, Mahmoud and Bardes, Adrien and Fan, David and Garrido, Quentin and Howes, Russell and
+  Komeili, Mojtaba and Muckley, Matthew and Rizvi, Ammar and Roberts, Claire and Sinha, Koustuv and Zholus, Artem and
+  Arnaud, Sergio and Gejji, Abha and Martin, Ada and Robert Hogan, Francois and Dugas, Daniel and
+  Bojanowski, Piotr and Khalidov, Vasil and Labatut, Patrick and Massa, Francisco and Szafraniec, Marc and
+  Krishnakumar, Kapil and Li, Yong and Ma, Xiaodong and Chandar, Sarath and Meier, Franziska and LeCun, Yann and
+  Rabbat, Michael and Ballas, Nicolas},
+  institution={FAIR at Meta},
+  year={2025}
+}
+```

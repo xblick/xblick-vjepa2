@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.4 (2026-11-15)
+
+A fixed GPU for `--device cuda`, and how to cite V-JEPA 2.
+
+### Changed
+
+- `--device cuda` is GPU 0, `cuda:N` GPU N. Another value, or a GPU that cannot be used, ends the node with one line.
+- The start line says where the model computes (`model on cuda:0`).
+- README: how to cite V-JEPA 2.
+
+Compatible with earlier clients: nothing on the wire changed.
+
 ## 0.2.3 (2026-11-14)
 
 - The weights moved out of the checkout into the node's cache directory, `~/.cache/xblick/vjepa2/`. `XBLICK_HOME` and
