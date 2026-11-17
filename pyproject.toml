@@ -8,7 +8,8 @@ license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "David Schneider" }]
 requires-python = ">=3.12,<3.13"
 dependencies = [
-    "xblick>=0.5.5,<0.6",  # the Durchblick core: node, history, tensors, parameters, vision_msgs/Classification
+    # branch ros2 only: the core from its unreleased branch ros2 (--ros); main pins the release
+    "xblick @ git+https://github.com/xblick/xblick@ros2",  # the core: node, history, tensors, parameters
     "transformers>=5,<6",  # VJEPA2ForVideoClassification (transformers 4.53+); 5: from_pretrained(dtype=)
     "torch>=2.10",
     "numpy>=1.26",

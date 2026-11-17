@@ -1,5 +1,23 @@
 # Changelog
 
+## Branch ros2 (not released)
+
+The node with the core's option `--ros` (ROS 2 on `rmw_zenoh`).
+
+### Changed
+
+- The core comes from its unreleased branch `ros2` (`xblick @ git+https://github.com/xblick/xblick@ros2`), not from
+  PyPI. `uv sync` builds its C++ part from source.
+
+### Added
+
+- `--ros`, `--ros-domain`, `--ros-node` and `--ros-params-writable` from the core. With `--ros` the actions and the
+  tokens go to ROS 2 as well, and the parameters are a ROS node. README: section "ROS 2".
+- `tests/test_ros.py`: a stand-in model (no checkpoint, a CUDA device); with `--ros` a ROS subscriber gets each output
+  with a ROS type, with ROS's attachment and tokens; without it nothing of ROS is on the wire.
+
+Compatible with earlier clients: nothing on our keys changed.
+
 ## 0.2.4 (2026-11-15)
 
 A fixed GPU for `--device cuda`, and how to cite V-JEPA 2.

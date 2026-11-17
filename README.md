@@ -146,6 +146,33 @@ The encoder needs 17 ms per clip of 16 frames on an RTX PRO 6000, and the head n
 
 [Speed](docs/performance.md) has the measurements and their setup.
 
+## ROS 2
+
+The branch `ros2` of this repository takes the core from its branch `ros2`, which is not released. `uv sync` then builds
+the core's C++ part from source, which needs a C++ compiler. The core adds the option `--ros`: the node then also takes
+part in ROS 2 on `rmw_zenoh`, and its own topics stay as they are. Without `--ros` nothing changes.
+
+```bash
+.venv/bin/xblick-vjepa2 --camera test/camera --ros
+```
+
+| ROS 2 topic | ROS type |
+| --- | --- |
+| `/<camera>/vjepa2/actions` | `vision_msgs/msg/Classification` |
+| `/<camera>/vjepa2/tokens/image_raw` | `sensor_msgs/msg/Image` (`16FC1`) |
+| `/<camera>/diagnostics` | `diagnostic_msgs/msg/DiagnosticArray` |
+
+ROS 2 does not get the tokens' CUDA and shared memory rings. The node sends a topic to ROS only while a ROS subscriber
+reads it. The program is the ROS node `/xblick_vjepa2` (`--ros-node`), and its parameters are the ROS node
+`/<camera>/vjepa2`. ROS clients read the parameters and may set them only when the node was started with
+`--ros-params-writable`.
+
+Each part of `--camera` and `--node` has to be a ROS name: letters, digits and `_`, not starting with a digit. Otherwise
+`--ros` stops the node at its start with one line. A test checks the actions and the tokens of a stand-in model against
+our own ROS subscriber; no ROS 2 installation and no real model were used for this node. [Durchblick and ROS
+2](https://github.com/xblick/xblick/blob/ros2/docs/integrations/ros2.md) describes the option, the other `--ros-*`
+options and ROS 2's tools.
+
 ## Limits
 
 - We tested the node against the pipeline of transformers and live on a simulation. We have not tested it on a robot.
