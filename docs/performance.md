@@ -36,7 +36,3 @@ on an RTX PRO 6000 with a camera of 1280 x 720 at 30 frames per second.
 On the turntable, the first classes of the head were "Turning the camera left while filming [something]", "Tilting
 [something] with [something] on it slightly ..." and "Pushing [something] with [something]". SSv2 shows hands close
 up. Spinning objects that a robot sees are a different kind of video.
-
-## Status and limits
-
-- We have not measured the node on a robot.

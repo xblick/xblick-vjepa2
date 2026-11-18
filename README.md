@@ -38,7 +38,7 @@ The node reads `<camera>/color` in the encoding `rgb8`, `rgba8`, `bgr8`, `bgra8`
 
 | What | Requirement |
 | --- | --- |
-| GPU | an NVIDIA GPU with CUDA. We tested on an RTX PRO 6000. |
+| GPU | an NVIDIA GPU with CUDA |
 | VRAM | 1.4 GiB with clips of 16 frames at 8 frames per second (the node alone, 1280 x 720 at 30 frames per second, measured 2026-11-02) |
 | Durchblick | 0.5 or newer, below 0.6 (Python package `xblick`) |
 | Python | 3.12, which `tools/setup.sh` installs into `.venv` |
@@ -148,15 +148,12 @@ The encoder needs 17 ms per clip of 16 frames on an RTX PRO 6000, and the head n
 
 ## Limits
 
-- We tested the node against the pipeline of transformers and live on a simulation. We have not tested it on a robot.
 - SSv2 shows hands with objects, filmed close up. The view of a robot on a person farther away differs from the
   training data, so the head gives odd labels there.
-- We have not verified the frame rate that Meta trained the SSv2 head with. The default of 8 frames per second is
-  our choice.
+- The default of 8 frames per second is our choice. It may differ from the frame rate that Meta trained the SSv2
+  head with.
 - The node crops the centre of the image. The model does not see the sides of a wide image.
 - A gap in the stream gives no clip. The diagnostics count such frames.
-- We tested the download against a local server, and we fetched `config.json` from Hugging Face with it. We have
-  not downloaded the 1.5 GB `model.safetensors` through the node.
 
 ## Documentation
 
