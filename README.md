@@ -41,8 +41,8 @@ The node reads `<camera>/color` in the encoding `rgb8`, `rgba8`, `bgr8`, `bgra8`
 | GPU | an NVIDIA GPU with CUDA |
 | VRAM | 1.4 GiB with clips of 16 frames at 8 frames per second (the node alone, 1280 x 720 at 30 frames per second, measured 2026-11-02) |
 | Durchblick | 0.5 or newer, below 0.6 (Python package `xblick`) |
-| Python | 3.12, which `tools/setup.sh` installs into `.venv` |
-| Tools for the setup | uv and git |
+| Python | 3.12, which uv installs with the node |
+| Tools for the install | uv and git |
 | Disk | 1.4 GB for the checkpoint |
 
 Model licences:
@@ -57,20 +57,41 @@ checkpoint.
 
 ## Install
 
+Install the node with uv, or clone this repository for development.
+
+### With uv
+
+```bash
+uv tool install git+https://github.com/xblick/xblick-vjepa2@v0.2.5
+xblick-vjepa2 --download-only
+```
+
+uv puts `xblick-vjepa2` on PATH, in an environment of its own, with PyTorch for CUDA 13 and Python 3.12. It resolves
+the dependencies afresh within the bounds of `pyproject.toml`: `uv.lock` applies only to a clone.
+`xblick-vjepa2 --download-only` downloads the SSv2 checkpoint from Hugging Face at a fixed revision into
+`~/.cache/xblick/vjepa2/ssv2`.
+
+`uv tool upgrade xblick-vjepa2` updates the dependencies within the bounds of the installed version. A newer version
+is the same install command with its tag. `uv tool uninstall xblick-vjepa2` removes the node. The checkpoint stays in
+the cache directory.
+
+### From a clone
+
+For development, and for the versions that `uv.lock` fixes:
+
 ```bash
 tools/setup.sh
 ```
 
 The script creates `.venv` exactly as `uv.lock` states, with PyTorch for CUDA 13, transformers and Durchblick from
-source. Then it runs `xblick-vjepa2 --download-only`, which downloads the SSv2 checkpoint from Hugging Face at a
+PyPI. Then it runs `xblick-vjepa2 --download-only`, which downloads the SSv2 checkpoint from Hugging Face at a
 fixed revision into `~/.cache/xblick/vjepa2/ssv2`. It downloads only what is missing.
 
-The node itself also downloads a missing checkpoint at its start, before it loads the model. It prints the model's
-terms, the files and their size first. A preparation script downloads without a start:
+### Downloads at the start
 
-```bash
-.venv/bin/xblick-vjepa2 --download-only
-```
+The node itself also downloads a missing checkpoint at its start, before it loads the model. It prints the model's
+terms, the files and their size first. A preparation script downloads without a start with
+`xblick-vjepa2 --download-only` (`.venv/bin/xblick-vjepa2` in a clone).
 
 `--download-only` needs no camera, no Zenoh router and no GPU, and it exits with 0 when the weights are complete. A
 machine that must never start a download on its own, such as a robot, starts the node with `--no-download`. The
@@ -79,8 +100,8 @@ node then ends at once when a file is missing, and it names the file.
 ### Where the weights are
 
 The node keeps its weights in its cache directory, `~/.cache/xblick/vjepa2/`. `XBLICK_HOME=/dir` moves it to `/dir/cache/vjepa2/`,
-and `XDG_CACHE_HOME` moves it as well. `--weights-dir DIR` names another directory. The place is the same for a
-checkout and for a pip install. [Where files are](https://github.com/xblick/xblick/blob/main/docs/reference/files.md) lists the places, and it shows how to copy the cache to a
+and `XDG_CACHE_HOME` moves it as well. `--weights-dir DIR` names another directory. The place is the same for an
+install with uv and for a clone. [Where files are](https://github.com/xblick/xblick/blob/main/docs/reference/files.md) lists the places, and it shows how to copy the cache to a
 PC without internet.
 
 Up to version 0.2.2, the weights were in the checkout's `weights/`. The node does not read them there. At its start it
@@ -93,9 +114,10 @@ mkdir -p ~/.cache/xblick && mv weights ~/.cache/xblick/vjepa2
 ## Run
 
 Start a Zenoh router (`zenohd`) on the PC, then start the node. The camera name is an example.
+In a clone the commands are in `.venv/bin/`.
 
 ```bash
-.venv/bin/xblick-vjepa2 --camera test/camera
+xblick-vjepa2 --camera test/camera
 ```
 
 Look at the result in Durchblick's viewer. It shows the actions as a text log beside the images.
@@ -108,8 +130,8 @@ Two variants publish only the tokens, or use a head of your own. Such a head is 
 that you saved with `save_pretrained`.
 
 ```bash
-.venv/bin/xblick-vjepa2 --camera test/camera --no-labels
-.venv/bin/xblick-vjepa2 --camera test/camera --checkpoint /path/to/our_head
+xblick-vjepa2 --camera test/camera --no-labels
+xblick-vjepa2 --camera test/camera --checkpoint /path/to/our_head
 ```
 
 | Option | Default | Meaning |
