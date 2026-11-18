@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.2.5 (2026-11-18)
+
+The Durchblick core 0.5.14.
+
+### Changed
+
+- The node needs `xblick>=0.5.14,<0.6`; uv.lock fixes xblick 0.5.14 (was 0.5.5). No other package changed.
+- The node declares itself on the network (core 0.5.9): its name, version, host, process and whole command line on
+  `xblick/sessions/<zid>/program`. The terminal interface lists it in its Nodes and Graph tabs.
+- The start line says where the node reads its frames, for example `reading the host ring: shm` (core 0.5.8).
+- A `--camera` that names a stream (`cam/video2/color`) ends the node with one line that names the camera, instead of
+  waiting (core 0.5.7). A router that cannot be reached ends it with one line instead of a traceback.
+- A `--connect` to another PC's router in the default mode prints a notice with the three remedies (core 0.5.7).
+- A parameter set whose deadline has passed when the node comes to act on it is refused, and the caller raises
+  `Expired`. A set meant for another node on the same key is refused (core 0.5.13).
+- The rings the node publishes record their creator, so `xblick clean --remove` removes them after the node was
+  killed (core 0.5.12).
+- `tests/test_weights.py`: its check for network use lets an address given as numbers resolve. The core looks up the
+  hosts of `--connect` since 0.5.7, to tell whether they are this PC.
+
+### Fixed
+
+- A node that closed its session before its parameters no longer prints a traceback (core 0.5.7).
+- Closing no longer raises "Already mutably borrowed" in the thread of the program's declaration (core 0.5.13).
+
+Compatible with earlier clients: nothing on the wire changed.
+
 ## 0.2.4 (2026-11-15)
 
 A fixed GPU for `--device cuda`, and how to cite V-JEPA 2.

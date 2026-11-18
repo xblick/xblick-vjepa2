@@ -46,7 +46,7 @@ tools/setup.sh                                     # uv sync --frozen, then xbli
   `~/.cache/xblick/vjepa2/.download.lock`. Never let a partial or unchecked file get its final name. No fallbacks.
 - `--checkpoint` takes a name of `CHECKPOINTS` or a directory saved with `save_pretrained` (nothing downloaded).
 - Do not reorder the tokens for the transport.
-- Durchblick pin: `xblick>=0.5.5,<0.6` (the core's Python package).
+- Durchblick pin: `xblick>=0.5.14,<0.6` (the core's Python package).
 - 120 columns. Docstrings say what, comments say why.
 - Update `README.md` and `docs/` with every change of behaviour.
 - Run GPU tests and live checks in the background with `timeout`. Stop them by PID.

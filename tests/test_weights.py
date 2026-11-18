@@ -10,6 +10,7 @@ import contextlib
 import hashlib
 import http.server
 import io
+import ipaddress
 import os
 import signal
 import socket
@@ -150,7 +151,18 @@ def no_network(monkeypatch):
     monkeypatch.setattr(socket.socket, "connect", refuse)
     monkeypatch.setattr(socket.socket, "connect_ex", refuse)
     monkeypatch.setattr(socket, "create_connection", refuse)
-    monkeypatch.setattr(socket, "getaddrinfo", refuse)
+    real_getaddrinfo = socket.getaddrinfo
+
+    def numeric_only(host, *args, **kwargs):
+        """An address given as numbers resolves without the network (the core's session looks up the hosts of
+        --connect, to tell whether they are this PC); a name would need DNS."""
+        try:
+            ipaddress.ip_address(host)
+        except ValueError:
+            refuse(host, *args)
+        return real_getaddrinfo(host, *args, **kwargs)
+
+    monkeypatch.setattr(socket, "getaddrinfo", numeric_only)
 
 
 def use_store(monkeypatch, required=None, former=None):
