@@ -38,11 +38,11 @@ The node reads `<camera>/color` in the encoding `rgb8`, `rgba8`, `bgr8`, `bgra8`
 
 | What | Requirement |
 | --- | --- |
-| GPU | an NVIDIA GPU with CUDA |
+| GPU | an NVIDIA GPU with driver 580 or newer (PyTorch for CUDA 13) |
 | VRAM | 1.4 GiB with clips of 16 frames at 8 frames per second (the node alone, 1280 x 720 at 30 frames per second, measured 2026-11-02) |
 | Durchblick | 0.5 or newer, below 0.6 (Python package `xblick`) |
 | Python | 3.12, which uv installs with the node |
-| Tools for the install | uv and git |
+| Tools for the install | git and uv (step 1 of the installation installs them) |
 | Disk | 1.4 GB for the checkpoint |
 
 Model licences:
@@ -57,31 +57,67 @@ checkpoint.
 
 ## Install
 
-Install the node with uv, or clone this repository for development.
+1. Install the prerequisites. `nvidia-smi` prints the GPU and the driver version, which must be 580 or newer. On
+   Ubuntu, `sudo apt install nvidia-driver-580` and a restart install that driver. After the installation of uv, open
+   a new terminal, so that `uv` is on `PATH`.
 
-### With uv
+   ```bash
+   nvidia-smi
+   sudo apt install git
+   wget -qO- https://astral.sh/uv/install.sh | sh
+   ```
 
-```bash
-uv tool install git+https://github.com/xblick/xblick-vjepa2@v0.2.5
-xblick-vjepa2 --download-only
-```
+2. Install the node and download its weights:
 
-uv puts `xblick-vjepa2` on PATH, in an environment of its own, with PyTorch for CUDA 13 and Python 3.12. It resolves
-the dependencies afresh within the bounds of `pyproject.toml`: `uv.lock` applies only to a clone.
-`xblick-vjepa2 --download-only` downloads the SSv2 checkpoint from Hugging Face at a fixed revision into
-`~/.cache/xblick/vjepa2/ssv2`.
+   ```bash
+   uv tool install git+https://github.com/xblick/xblick-vjepa2@v0.2.6
+   xblick-vjepa2 --download-only
+   ```
 
-`uv tool upgrade xblick-vjepa2` updates the dependencies within the bounds of the installed version. A newer version
-is the same install command with its tag. `uv tool uninstall xblick-vjepa2` removes the node. The checkpoint stays in
-the cache directory.
+   uv puts `xblick-vjepa2` on `PATH`, in an environment of its own, with PyTorch for CUDA 13 (about 3 GB to download,
+   6 GB on disk) and Python 3.12. It resolves the dependencies afresh within the bounds of `pyproject.toml`:
+   `uv.lock` applies only to a clone. `xblick-vjepa2 --download-only` prints the model's terms and downloads the
+   SSv2 checkpoint (1.4 GB) from Hugging Face at a fixed revision into `~/.cache/xblick/vjepa2/ssv2`.
+
+   `uv tool upgrade xblick-vjepa2` updates the dependencies within the bounds of the installed version. A newer
+   version is the same install command with its tag. `uv tool uninstall xblick-vjepa2` removes the node. The
+   checkpoint stays in the cache directory.
+
+3. Install the core's command `xblick` with the viewer, video files and webcams. uv puts it on `PATH`. A second
+   `uv tool install` of xblick with other extras replaces the first and removes what only the first had, so every
+   xblick node names this one line:
+
+   ```bash
+   uv tool install "xblick[rerun,video,cam]>=0.5,<0.6"
+   ```
+
+4. Start the node on a video, without a camera. Any short video of a hand at work works, for example one from a
+   phone of a hand that picks something up. Run each command in its own terminal. If the PC already runs a Zenoh
+   router (`xblick router` or `zenohd`), leave out the first one.
+
+   ```bash
+   xblick router                                               # the Zenoh router of this PC
+   xblick play ~/Videos/clip.mp4 --camera demo/video --loop    # the video as the camera demo/video
+   xblick-vjepa2 --camera demo/video
+   xblick rerun                                                # the viewer
+   ```
+
+   The viewer shows the video and beside it a text log with the five actions of Something-Something v2 that
+   V-JEPA 2 finds most likely in the last two seconds, such as "Picking [something] up", with their scores.
 
 ### From a clone
 
 For development, and for the versions that `uv.lock` fixes:
 
 ```bash
+git clone https://github.com/xblick/xblick-vjepa2.git
+cd xblick-vjepa2
 tools/setup.sh
 ```
+
+When git or uv is missing, the script stops and prints the command that installs it. Without an NVIDIA GPU with
+driver 580 or newer it says so and goes on. `tools/setup.sh --help` describes it. In a clone the commands are in
+`.venv/bin/`.
 
 The script creates `.venv` exactly as `uv.lock` states, with PyTorch for CUDA 13, transformers and Durchblick from
 PyPI. Then it runs `xblick-vjepa2 --download-only`, which downloads the SSv2 checkpoint from Hugging Face at a
@@ -113,7 +149,7 @@ mkdir -p ~/.cache/xblick && mv weights ~/.cache/xblick/vjepa2
 
 ## Run
 
-Start a Zenoh router (`zenohd`) on the PC, then start the node. The camera name is an example.
+Start a Zenoh router (`xblick router` or `zenohd`) on the PC, then start the node. The camera name is an example.
 In a clone the commands are in `.venv/bin/`.
 
 ```bash

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.2.6 (2026-11-19)
+
+An installation that a beginner can follow from the README alone.
+
+### Changed
+
+- The README's installation is a numbered path: the prerequisites with their install commands, the node with
+  `uv tool install`, the core's command with one line for every node
+  (`uv tool install "xblick[rerun,video,cam]>=0.5,<0.6"`), and a first start. The clone with `tools/setup.sh` stays
+  the second way.
+- `tools/setup.sh --help` describes the script and its options and ends. Before, it ran the setup.
+- `tools/setup.sh` checks its prerequisites first. Without git or uv it stops and prints the command that installs
+  them. On a PC other than Linux on x86-64, for which the core has no wheels, it stops at once.
+- Before its downloads, `tools/setup.sh` lists what it downloads, with the sizes and the licences.
+- `tools/setup.sh` says when it finds no NVIDIA GPU with driver 580 or newer, which the node needs to start, and
+  goes on (`--download-only` needs no GPU). It refuses an unknown option; before, it ignored every option.
+
 ## 0.2.5 (2026-11-18)
 
 The Durchblick core 0.5.14.
